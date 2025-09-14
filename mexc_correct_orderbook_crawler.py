@@ -33,16 +33,41 @@ class MexcCorrectOrderBookCrawler:
         self.tokens_data = []
         self.orderbook_data = []
         
-    def crawl_all_data(self):
-        """Crawl all data: tokens from pre-market + real order book from correct URLs"""
+    def crawl_all_data(self, target_symbol=None):
+        """Crawl all data: tokens from pre-market + real order book from correct URLs
+        
+        Args:
+            target_symbol (str, optional): If specified, only crawl this specific symbol. 
+                                         If None, crawl all tokens from pre-market.
+        """
         print("🚀 MEXC Correct Order Book Crawler")
         print("=" * 70)
-        print("📊 Phase 1: Crawling token list from pre-market")
-        print("📊 Phase 2: Crawling real order book from correct URLs")
-        print("=" * 70)
         
-        # Phase 1: Get token list from pre-market
-        self.crawl_token_list()
+        if target_symbol:
+            print(f"📊 Target: {target_symbol} only")
+            print("📊 Phase 1: Skip token list, direct to order book crawling")
+            print("📊 Phase 2: Crawling real order book for target symbol")
+            
+            # Skip token list, create token data directly
+            self.tokens_data = [{
+                'name': target_symbol,
+                'symbol': target_symbol,
+                'latest_price': '',
+                'price_change_percent': '',
+                'volume_24h': '',
+                'total_volume': '',
+                'start_time': '',
+                'end_time': '',
+                'crawled_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }]
+        else:
+            print("📊 Phase 1: Crawling token list from pre-market")
+            print("📊 Phase 2: Crawling real order book from correct URLs")
+            
+            # Phase 1: Get token list from pre-market
+            self.crawl_token_list()
+        
+        print("=" * 70)
         
         # Phase 2: Crawl real order book for each token
         if self.tokens_data:
@@ -259,13 +284,15 @@ class MexcCorrectOrderBookCrawler:
                         print(f"      ❌ Error parsing row {i+1}: {e}")
                         continue
                 
-                # Handle pagination to get more data
+                # Handle pagination to get ALL data from ALL pages
                 print(f"    🔄 Checking for pagination...")
                 pagination_entries = self.handle_pagination(driver, symbol, crawled_at)
                 orderbook_entries.extend(pagination_entries)
                 
                 if pagination_entries:
                     print(f"    📊 Found {len(pagination_entries)} additional entries from pagination")
+                else:
+                    print(f"    ℹ️  No pagination found or only 1 page available")
             
             else:
                 print(f"    ❌ Could not find order book table")
@@ -320,7 +347,7 @@ class MexcCorrectOrderBookCrawler:
             return None
     
     def handle_pagination(self, driver, symbol, crawled_at):
-        """Handle pagination to get more order book data"""
+        """Handle pagination to get ALL order book data from all pages"""
         pagination_entries = []
         
         try:
@@ -332,6 +359,7 @@ class MexcCorrectOrderBookCrawler:
             ]
             
             pagination_found = False
+            pagination = None
             for selector in pagination_selectors:
                 try:
                     pagination = driver.find_element(By.CSS_SELECTOR, selector)
@@ -342,24 +370,98 @@ class MexcCorrectOrderBookCrawler:
                     continue
             
             if pagination_found:
-                # Get all pagination links
+                # Get all pagination links to determine total pages
                 page_links = pagination.find_elements(By.CSS_SELECTOR, ".ant-pagination-item a")
                 
-                print(f"      📄 Found {len(page_links)} pagination pages")
-                
-                # Process first few pages (limit to avoid too many requests)
-                max_pages = min(3, len(page_links))
-                
-                for page_num in range(2, max_pages + 1):  # Start from page 2
+                # Extract page numbers from the pagination
+                # Based on debug results: page numbers are in title attribute, not text
+                page_numbers = []
+                for link in page_links:
                     try:
-                        print(f"      🔄 Processing page {page_num}...")
+                        # First try text
+                        page_text = link.text.strip()
+                        if page_text.isdigit():
+                            page_numbers.append(int(page_text))
+                        else:
+                            # If text is empty, try title attribute
+                            title_text = link.get_attribute('title')
+                            if title_text and title_text.isdigit():
+                                page_numbers.append(int(title_text))
+                    except:
+                        continue
+                
+                # Also try to get page numbers from li elements with title attribute
+                if not page_numbers:
+                    try:
+                        page_items = pagination.find_elements(By.CSS_SELECTOR, ".ant-pagination-item")
+                        for item in page_items:
+                            try:
+                                title_text = item.get_attribute('title')
+                                if title_text and title_text.isdigit():
+                                    page_numbers.append(int(title_text))
+                            except:
+                                continue
+                    except:
+                        pass
+                
+                # Find the maximum page number
+                max_page = max(page_numbers) if page_numbers else 1
+                print(f"      📄 Found {len(page_links)} pagination pages, max page: {max_page}")
+                print(f"      📄 Page numbers detected: {sorted(page_numbers)}")
+                
+                # Process ALL pages starting from page 2 (page 1 is already processed)
+                for page_num in range(2, max_page + 1):
+                    try:
+                        print(f"      🔄 Processing page {page_num}/{max_page}...")
                         
-                        # Click on page number
-                        page_link = pagination.find_element(By.CSS_SELECTOR, f".ant-pagination-item-{page_num} a")
-                        page_link.click()
+                        # Scroll to pagination to ensure it's visible
+                        driver.execute_script("arguments[0].scrollIntoView(true);", pagination)
+                        time.sleep(1)
                         
-                        # Wait for page to load
-                        time.sleep(3)
+                        # Click on page number - try different approaches
+                        page_link = None
+                        
+                        # Approach 1: Try CSS selector with page number class
+                        try:
+                            page_link = pagination.find_element(By.CSS_SELECTOR, f".ant-pagination-item-{page_num} a")
+                            print(f"        Found page link using CSS selector for page {page_num}")
+                        except NoSuchElementException:
+                            # Approach 2: Try finding by title attribute
+                            try:
+                                page_items = pagination.find_elements(By.CSS_SELECTOR, ".ant-pagination-item")
+                                for item in page_items:
+                                    title = item.get_attribute('title')
+                                    if title == str(page_num):
+                                        page_link = item.find_element(By.TAG_NAME, 'a')
+                                        print(f"        Found page link using title attribute for page {page_num}")
+                                        break
+                            except:
+                                pass
+                        
+                        # Approach 3: Try finding by index (if we know the order)
+                        if not page_link and page_num <= 6:  # Based on debug showing 6 links
+                            try:
+                                page_links = pagination.find_elements(By.CSS_SELECTOR, ".ant-pagination-item a")
+                                if page_num - 1 < len(page_links):  # page_num is 1-indexed, array is 0-indexed
+                                    page_link = page_links[page_num - 1]
+                                    print(f"        Found page link using index for page {page_num}")
+                            except:
+                                pass
+                        
+                        if page_link:
+                            # Scroll to the link and click
+                            driver.execute_script("arguments[0].scrollIntoView(true);", page_link)
+                            time.sleep(0.5)
+                            
+                            # Use JavaScript click to avoid element interception issues
+                            driver.execute_script("arguments[0].click();", page_link)
+                            print(f"        Successfully clicked page {page_num}")
+                        else:
+                            print(f"        ❌ Could not find page link for page {page_num}")
+                            continue
+                        
+                        # Wait for page to load and data to update
+                        time.sleep(4)
                         
                         # Extract data from current page
                         current_page_entries = self.extract_current_page_orders(driver, symbol, crawled_at)
@@ -367,9 +469,14 @@ class MexcCorrectOrderBookCrawler:
                         
                         print(f"      📊 Page {page_num}: {len(current_page_entries)} entries")
                         
+                        # Add small delay between pages to avoid overwhelming the server
+                        time.sleep(1)
+                        
                     except Exception as e:
                         print(f"      ❌ Error processing page {page_num}: {e}")
                         continue
+                        
+                print(f"      ✅ Completed pagination: {len(pagination_entries)} total additional entries from {max_page-1} pages")
             else:
                 print(f"      ⚠️  No pagination found")
                 
@@ -655,8 +762,13 @@ class MexcCorrectOrderBookCrawler:
             print(f"❌ Error saving data: {e}")
 
 
-def main():
-    """Main function"""
+def main(target_symbol=None):
+    """Main function
+    
+    Args:
+        target_symbol (str, optional): If specified, only crawl this specific symbol.
+                                     If None, crawl all tokens from pre-market.
+    """
     print("🚀 MEXC Correct Order Book Crawler")
     print("Uses correct URL pattern and CSS selectors from real HTML")
     print("=" * 60)
@@ -664,7 +776,7 @@ def main():
     crawler = MexcCorrectOrderBookCrawler()
     
     # Run the correct order book crawler
-    tokens_data, orderbook_data = crawler.crawl_all_data()
+    tokens_data, orderbook_data = crawler.crawl_all_data(target_symbol=target_symbol)
     
     if tokens_data:
         # Save all data to file
@@ -696,5 +808,20 @@ def main():
         print("❌ No data was extracted. Please check your setup and try again.")
 
 
+def main_stbl_only():
+    """Main function to crawl only STBL token for testing"""
+    print("🚀 MEXC STBL Only Crawler (Full Pagination Test)")
+    print("Target: STBL token with ALL pagination pages")
+    print("=" * 60)
+    
+    main(target_symbol="STBL")
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    
+    # Check if STBL-only mode is requested
+    if len(sys.argv) > 1 and sys.argv[1].upper() == "STBL":
+        main_stbl_only()
+    else:
+        main()
