@@ -45,21 +45,11 @@ class MexcCorrectOrderBookCrawler:
         
         if target_symbol:
             print(f"📊 Target: {target_symbol} only")
-            print("📊 Phase 1: Skip token list, direct to order book crawling")
+            print("📊 Phase 1: Crawling token data for target symbol")
             print("📊 Phase 2: Crawling real order book for target symbol")
             
-            # Skip token list, create token data directly
-            self.tokens_data = [{
-                'name': target_symbol,
-                'symbol': target_symbol,
-                'latest_price': '',
-                'price_change_percent': '',
-                'volume_24h': '',
-                'total_volume': '',
-                'start_time': '',
-                'end_time': '',
-                'crawled_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            }]
+            # Crawl token data for target symbol from pre-market page
+            self.crawl_token_data_for_symbol(target_symbol)
         else:
             print("📊 Phase 1: Crawling token list from pre-market")
             print("📊 Phase 2: Crawling real order book from correct URLs")
@@ -79,6 +69,128 @@ class MexcCorrectOrderBookCrawler:
         print(f"   • Real order book entries: {len(self.orderbook_data)}")
         
         return self.tokens_data, self.orderbook_data
+    
+    def crawl_token_data_for_symbol(self, target_symbol):
+        """Crawl token data for a specific symbol from pre-market page"""
+        print(f"\n📋 Phase 1: Getting token data for {target_symbol} from pre-market...")
+        
+        # Set up Chrome driver
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+        
+        driver = None
+        try:
+            driver = webdriver.Chrome(options=chrome_options)
+            url = 'https://www.mexc.com/vi-VN/pre-market'
+            print(f"📡 Loading URL: {url}")
+            
+            driver.get(url)
+            
+            # Wait for page to load
+            wait = WebDriverWait(driver, 20)
+            
+            # Wait for the specific tab panel
+            try:
+                print("⏳ Waiting for token panel to load...")
+                tab_panel = wait.until(
+                    EC.presence_of_element_located((By.ID, "rc-tabs-0-panel-1"))
+                )
+                
+                # Wait for content to load
+                time.sleep(5)
+                
+                # Try to find the token list
+                token_list = driver.find_element(By.CSS_SELECTOR, "ul.ant-list-items")
+                
+                if token_list:
+                    print("✅ Found token list, searching for target symbol...")
+                    token_items = token_list.find_elements(By.TAG_NAME, "li")
+                    
+                    print(f"📊 Found {len(token_items)} token items, searching for {target_symbol}")
+                    
+                    target_token_found = False
+                    for i, item in enumerate(token_items):
+                        try:
+                            # Check if this item contains our target symbol
+                            item_text = item.text
+                            if target_symbol.upper() in item_text.upper():
+                                print(f"🔄 Found target token {target_symbol} at position {i+1}")
+                                
+                                # Extract token data
+                                token_data = self.extract_token_data(item)
+                                if token_data:
+                                    self.tokens_data.append(token_data)
+                                    symbol = token_data.get('symbol', '')
+                                    print(f"✅ Token data extracted: {symbol}")
+                                    print(f"   • Latest Price: {token_data.get('latest_price', 'N/A')}")
+                                    print(f"   • Price Change: {token_data.get('price_change_percent', 'N/A')}")
+                                    print(f"   • Volume 24h: {token_data.get('volume_24h', 'N/A')}")
+                                    print(f"   • Total Volume: {token_data.get('total_volume', 'N/A')}")
+                                    print(f"   • Start Time: {token_data.get('start_time', 'N/A')}")
+                                    print(f"   • End Time: {token_data.get('end_time', 'N/A')}")
+                                    target_token_found = True
+                                    break
+                            
+                        except Exception as e:
+                            print(f"❌ Error processing token {i+1}: {e}")
+                            continue
+                    
+                    if not target_token_found:
+                        print(f"⚠️  Target token {target_symbol} not found in pre-market list")
+                        # Create minimal token data as fallback
+                        self.tokens_data = [{
+                            'name': target_symbol,
+                            'symbol': target_symbol,
+                            'latest_price': '',
+                            'price_change_percent': '',
+                            'volume_24h': '',
+                            'total_volume': '',
+                            'start_time': '',
+                            'end_time': '',
+                            'crawled_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        }]
+                        print(f"📝 Created minimal token data for {target_symbol}")
+                
+            except TimeoutException:
+                print("⚠️ Timeout waiting for token list. Creating minimal token data...")
+                # Create minimal token data as fallback
+                self.tokens_data = [{
+                    'name': target_symbol,
+                    'symbol': target_symbol,
+                    'latest_price': '',
+                    'price_change_percent': '',
+                    'volume_24h': '',
+                    'total_volume': '',
+                    'start_time': '',
+                    'end_time': '',
+                    'crawled_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }]
+                print(f"📝 Created minimal token data for {target_symbol}")
+                
+        except Exception as e:
+            print(f"❌ Error in token data crawling: {e}")
+            # Create minimal token data as fallback
+            self.tokens_data = [{
+                'name': target_symbol,
+                'symbol': target_symbol,
+                'latest_price': '',
+                'price_change_percent': '',
+                'volume_24h': '',
+                'total_volume': '',
+                'start_time': '',
+                'end_time': '',
+                'crawled_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }]
+            print(f"📝 Created minimal token data for {target_symbol}")
+            
+        finally:
+            if driver:
+                driver.quit()
     
     def crawl_token_list(self):
         """Crawl token list from pre-market page"""
@@ -264,25 +376,52 @@ class MexcCorrectOrderBookCrawler:
                         continue
             
             if orderbook_table:
-                # Extract order book rows using correct CSS selectors from HTML
-                rows = orderbook_table.find_elements(By.CSS_SELECTOR, "tr.ant-table-row")
+                # Extract order book rows using robust CSS selectors with fallbacks - include ALL tr elements
+                rows = []
+                row_selectors = [
+                    "tr",  # Get ALL tr elements first, then filter
+                    "tr.ant-table-row",
+                    ".ant-table-row"
+                ]
                 
-                print(f"    📊 Found {len(rows)} order book rows")
+                for selector in row_selectors:
+                    try:
+                        rows = orderbook_table.find_elements(By.CSS_SELECTOR, selector)
+                        if rows:
+                            print(f"    ✅ Found {len(rows)} order book rows with selector: {selector}")
+                            break
+                    except:
+                        continue
                 
+                if not rows:
+                    print(f"    ⚠️  No rows found in order book table")
+                    return orderbook_entries
+                
+                # Parse each row with improved error handling
+                valid_entries = 0
+                skipped_measurement_rows = 0
                 for i, row in enumerate(rows):
                     try:
-                        # Extract data from each row using correct CSS selectors
+                        # Check if this is a measurement row first
+                        if self.is_measurement_row(row):
+                            skipped_measurement_rows += 1
+                            continue
+                        
+                        # Extract data from each row using robust CSS selectors
                         order_data = self.parse_correct_orderbook_row(row, symbol, crawled_at)
                         if order_data:
                             orderbook_entries.append(order_data)
+                            valid_entries += 1
                             
                         # Show progress for first few rows
-                        if i < 5:
+                        if i < 5 and order_data:
                             print(f"      Row {i+1}: {order_data}")
                             
                     except Exception as e:
                         print(f"      ❌ Error parsing row {i+1}: {e}")
                         continue
+                
+                print(f"    📊 Successfully parsed {valid_entries}/{len(rows)} rows from first page (skipped {skipped_measurement_rows} measurement rows)")
                 
                 # Handle pagination to get ALL data from ALL pages
                 print(f"    🔄 Checking for pagination...")
@@ -302,30 +441,93 @@ class MexcCorrectOrderBookCrawler:
         
         return orderbook_entries
     
-    def parse_correct_orderbook_row(self, row_element, symbol, crawled_at):
-        """Parse order book data from a table row using correct CSS selectors"""
+    def get_current_page_number(self, driver):
+        """Get the current page number from pagination"""
         try:
-            # Extract data using correct CSS selectors from HTML structure
+            pagination = driver.find_element(By.CSS_SELECTOR, ".order-book-table_paginationWrapper__O_FJg")
+            active_item = pagination.find_element(By.CSS_SELECTOR, ".ant-pagination-item-active")
+            page_num = int(active_item.get_attribute('title'))
+            return page_num
+        except:
+            return 1
+    
+    def parse_correct_orderbook_row(self, row_element, symbol, crawled_at):
+        """Parse order book data from a table row using robust CSS selectors with fallbacks"""
+        try:
+            # Skip Ant Design measurement rows (hidden rows used for table calculations)
+            if self.is_measurement_row(row_element):
+                print(f"      ⚠️  Skipping measurement row (aria-hidden or ant-table-measure-row)")
+                return None
+            
+            # Extract data using robust CSS selectors with fallbacks
             # Based on the HTML: price is in first td, quantities in second and third td
             
             cells = row_element.find_elements(By.TAG_NAME, 'td')
             if len(cells) < 3:
+                print(f"      ⚠️  Row has only {len(cells)} cells, expected at least 3")
                 return None
             
-            # Extract price from first cell using correct selector
-            price_cell = cells[0]
-            price_element = price_cell.find_element(By.CSS_SELECTOR, ".order-book-table_sellPrice__xAuZe")
-            price = price_element.text.strip()
+            # Extract price from first cell with multiple fallback selectors
+            # Handle both page 1 structure and page 2+ structure
+            price = self.extract_text_with_fallbacks(cells[0], [
+                # Page 1 structure
+                ".order-book-table_priceContent__NGers .order-book-table_price__Sevu0",
+                ".order-book-table_price__Sevu0",
+                # Page 2+ structure  
+                ".order-book-table_sellPrice__xAuZe",
+                # Generic fallbacks
+                "[class*='sellPrice']",
+                "[class*='price']",
+                "span",
+                "div"
+            ], "price")
             
-            # Extract first quantity from second cell
-            quantity1_cell = cells[1]
-            quantity1_element = quantity1_cell.find_element(By.CSS_SELECTOR, ".order-book-table_content__ZSAZ_")
-            quantity1 = quantity1_element.text.strip()
+            # If price is still empty, try direct text extraction from the cell
+            if not price:
+                price = cells[0].text.strip()
             
-            # Extract second quantity (total) from third cell
-            quantity2_cell = cells[2]
-            quantity2_element = quantity2_cell.find_element(By.CSS_SELECTOR, ".order-book-table_content__ZSAZ_")
-            quantity2 = quantity2_element.text.strip()
+            # Extract first quantity from second cell with fallbacks
+            # Handle both page 1 and page 2+ structures
+            quantity1 = self.extract_text_with_fallbacks(cells[1], [
+                # Page 1 structure
+                ".order-book-table_itemH5Center__7tGxv .order-book-table_content__ZSAZ_",
+                # Page 2+ structure
+                ".order-book-table_itemCenter__gUPZp .order-book-table_content__ZSAZ_",
+                # Generic fallbacks
+                ".order-book-table_content__ZSAZ_",
+                "[class*='content']",
+                "[class*='quantity']",
+                "span",
+                "div"
+            ], "quantity1")
+            
+            # If quantity1 is still empty, try direct text extraction from the cell
+            if not quantity1:
+                quantity1 = cells[1].text.strip()
+            
+            # Extract second quantity (total) from third cell with fallbacks
+            # Handle both page 1 and page 2+ structures
+            quantity2 = self.extract_text_with_fallbacks(cells[2], [
+                # Page 1 structure
+                ".order-book-table_itemH5Center__7tGxv .order-book-table_content__ZSAZ_",
+                # Page 2+ structure
+                ".order-book-table_itemCenter__gUPZp .order-book-table_content__ZSAZ_",
+                # Generic fallbacks
+                ".order-book-table_content__ZSAZ_",
+                "[class*='content']",
+                "[class*='total']",
+                "span",
+                "div"
+            ], "quantity2")
+            
+            # If quantity2 is still empty, try direct text extraction from the cell
+            if not quantity2:
+                quantity2 = cells[2].text.strip()
+            
+            # Skip rows with empty essential data
+            if not price and not quantity1 and not quantity2:
+                print(f"      ⚠️  Skipping row with all empty data")
+                return None
             
             # Determine order type based on button text or cell content
             order_type = 'SELL'  # Based on HTML, these are sell orders (with "Mua" button)
@@ -335,9 +537,9 @@ class MexcCorrectOrderBookCrawler:
                 'token_symbol': symbol,
                 'crawled_at': crawled_at,
                 'order_type': order_type,
-                'price': price,
-                'quantity': quantity1,
-                'total': quantity2
+                'price': price or '',
+                'quantity': quantity1 or '',
+                'total': quantity2 or ''
             }
             
             return order_entry
@@ -345,6 +547,73 @@ class MexcCorrectOrderBookCrawler:
         except Exception as e:
             print(f"      ❌ Error parsing orderbook row: {e}")
             return None
+    
+    def extract_text_with_fallbacks(self, cell_element, selectors, field_name):
+        """Extract text from cell using multiple fallback selectors"""
+        for selector in selectors:
+            try:
+                element = cell_element.find_element(By.CSS_SELECTOR, selector)
+                text = element.text.strip()
+                if text:  # Only return non-empty text
+                    return text
+            except NoSuchElementException:
+                continue
+            except Exception as e:
+                print(f"        ⚠️  Error with selector '{selector}' for {field_name}: {e}")
+                continue
+        
+        # If all selectors fail, try to get any text from the cell
+        try:
+            cell_text = cell_element.text.strip()
+            if cell_text:
+                return cell_text
+        except:
+            pass
+        
+        return ''
+    
+    def is_measurement_row(self, row_element):
+        """Check if this is an Ant Design measurement row that should be skipped"""
+        try:
+            # Primary check: aria-hidden="true" attribute (most reliable)
+            aria_hidden = row_element.get_attribute('aria-hidden')
+            if aria_hidden == 'true':
+                return True
+            
+            # Secondary check: ant-table-measure-row class
+            class_name = row_element.get_attribute('class') or ''
+            if 'ant-table-measure-row' in class_name:
+                return True
+            
+            # Tertiary check: style with height: 0px AND font-size: 0px (measurement rows are typically hidden)
+            style = row_element.get_attribute('style') or ''
+            if 'height: 0px' in style and 'font-size: 0px' in style:
+                return True
+            
+            # Additional check: if all cells have height: 0px in style AND contain only &nbsp;
+            try:
+                cells = row_element.find_elements(By.TAG_NAME, 'td')
+                if cells and len(cells) >= 3:
+                    # Check if first cell has height: 0px
+                    first_cell_style = cells[0].get_attribute('style') or ''
+                    if 'height: 0px' in first_cell_style or 'height:0px' in first_cell_style:
+                        # Double check: all cells should contain only &nbsp; or be empty
+                        all_empty_or_nbsp = True
+                        for cell in cells[:3]:  # Check first 3 cells
+                            cell_text = cell.text.strip()
+                            if cell_text and cell_text != '\u00a0':  # \u00a0 is &nbsp;
+                                all_empty_or_nbsp = False
+                                break
+                        if all_empty_or_nbsp:
+                            return True
+            except:
+                pass
+            
+            return False
+            
+        except Exception as e:
+            # If we can't determine, assume it's not a measurement row
+            return False
     
     def handle_pagination(self, driver, symbol, crawled_at):
         """Handle pagination to get ALL order book data from all pages"""
@@ -409,14 +678,76 @@ class MexcCorrectOrderBookCrawler:
                 print(f"      📄 Found {len(page_links)} pagination pages, max page: {max_page}")
                 print(f"      📄 Page numbers detected: {sorted(page_numbers)}")
                 
-                # Process ALL pages starting from page 2 (page 1 is already processed)
-                for page_num in range(2, max_page + 1):
-                    try:
-                        print(f"      🔄 Processing page {page_num}/{max_page}...")
+                # Debug: Check all pagination elements
+                print(f"      🔍 Debug: Checking all pagination elements...")
+                try:
+                    all_pagination_items = pagination.find_elements(By.CSS_SELECTOR, "li")
+                    for i, item in enumerate(all_pagination_items):
+                        title = item.get_attribute('title') or 'No title'
+                        text = item.text.strip()
+                        classes = item.get_attribute('class') or 'No class'
+                        print(f"        Item {i+1}: title='{title}', text='{text}', class='{classes}'")
+                    
+                    # Check if there's a "Next" button or "..." button to see more pages
+                    next_buttons = pagination.find_elements(By.CSS_SELECTOR, "li[title='Next Page'], li[title='Next 5 Pages']")
+                    if next_buttons:
+                        print(f"        🔍 Found {len(next_buttons)} next buttons - there might be more pages!")
+                        for btn in next_buttons:
+                            print(f"          - {btn.get_attribute('title')}")
+                            
+                except Exception as e:
+                    print(f"        ❌ Error checking pagination items: {e}")
+                
+                # Try to find the actual last page by clicking "Next Page" repeatedly
+                print(f"      🔍 Finding actual last page by clicking 'Next Page' repeatedly...")
+                try:
+                    # Click "Next Page" until we can't click anymore
+                    max_attempts = 10
+                    for attempt in range(max_attempts):
+                        next_page_btn = pagination.find_element(By.CSS_SELECTOR, "li[title='Next Page']")
+                        if next_page_btn and next_page_btn.is_enabled() and "disabled" not in next_page_btn.get_attribute('class'):
+                            print(f"        🔄 Attempt {attempt + 1}: Clicking 'Next Page'...")
+                            next_page_btn.click()
+                            time.sleep(2)
+                            
+                            # Check pagination again after clicking
+                            pagination = driver.find_element(By.CSS_SELECTOR, ".order-book-table_paginationWrapper__O_FJg")
+                            page_links = pagination.find_elements(By.CSS_SELECTOR, "li[title]")
+                            page_numbers = []
+                            for link in page_links:
+                                try:
+                                    page_num = int(link.get_attribute('title'))
+                                    if page_num > 0:
+                                        page_numbers.append(page_num)
+                                except:
+                                    continue
+                            
+                            current_max_page = max(page_numbers) if page_numbers else max_page
+                            print(f"        📄 After click {attempt + 1}: max page is now {current_max_page}")
+                            
+                            # Update max_page if we found a higher page
+                            if current_max_page > max_page:
+                                max_page = current_max_page
+                        else:
+                            print(f"        ✅ 'Next Page' button is now disabled - reached last page")
+                            break
+                    
+                    print(f"        📄 Final max page found: {max_page}")
+                    print(f"        📄 All page numbers: {sorted(page_numbers)}")
                         
-                        # Scroll to pagination to ensure it's visible
-                        driver.execute_script("arguments[0].scrollIntoView(true);", pagination)
-                        time.sleep(1)
+                except Exception as e:
+                    print(f"        ❌ Error finding last page: {e}")
+                    print(f"        📄 Using detected max page: {max_page}")
+                
+                # Process ALL pages from 2 to max_page (page 1 is already processed)
+                # Crawl every single page, not just visible ones
+                all_pages = list(range(2, max_page + 1))  # Skip page 1 (already processed)
+                print(f"      🔄 FULL CRAWL MODE: Processing ALL pages from 2 to {max_page}")
+                print(f"      📄 All pages to process: {all_pages}")
+                
+                for page_num in all_pages:
+                    try:
+                        print(f"      🔄 Processing page {page_num}...")
                         
                         # Click on page number - try different approaches
                         page_link = None
@@ -457,11 +788,122 @@ class MexcCorrectOrderBookCrawler:
                             driver.execute_script("arguments[0].click();", page_link)
                             print(f"        Successfully clicked page {page_num}")
                         else:
-                            print(f"        ❌ Could not find page link for page {page_num}")
-                            continue
+                            # If can't find direct page link, try using "Next Page" navigation
+                            print(f"        🔄 Page {page_num} not visible, trying Next Page navigation...")
+                            current_page = self.get_current_page_number(driver)
+                            
+                            if current_page < page_num:
+                                # Navigate forward using Next Page
+                                while current_page < page_num:
+                                    try:
+                                        next_button = pagination.find_element(By.CSS_SELECTOR, ".ant-pagination-next:not(.ant-pagination-disabled)")
+                                        driver.execute_script("arguments[0].click();", next_button)
+                                        time.sleep(2)
+                                        current_page = self.get_current_page_number(driver)
+                                        print(f"        📄 Now at page {current_page}")
+                                        
+                                        if current_page == page_num:
+                                            print(f"        ✅ Successfully navigated to page {page_num}")
+                                            break
+                                    except Exception as e:
+                                        print(f"        ❌ Error navigating to page {page_num}: {e}")
+                                        break
+                            else:
+                                print(f"        ❌ Could not navigate to page {page_num}, skipping...")
+                                continue
                         
                         # Wait for page to load and data to update
-                        time.sleep(4)
+                        time.sleep(3)  # Initial wait for page transition
+                        
+                        # Additional wait for JavaScript to populate data
+                        # Sometimes the table structure loads but data is populated later by JS
+                        print(f"        ⏳ Waiting for JavaScript to populate data...")
+                        time.sleep(2)
+                        
+                        # Try scrolling to trigger lazy loading
+                        print(f"        🔄 Scrolling to trigger data loading...")
+                        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                        time.sleep(1)
+                        driver.execute_script("window.scrollTo(0, 0);")
+                        time.sleep(1)
+                        
+                        # Wait for table to be visible and populated
+                        try:
+                            wait = WebDriverWait(driver, 15)
+                            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "tbody")))
+                            
+                            # Wait for actual data to be loaded (not just empty cells)
+                            # Check if we have valid data in the first few rows
+                            max_retries = 20
+                            for retry in range(max_retries):
+                                try:
+                                    # Find the table and check for valid data
+                                    orderbook_table = driver.find_element(By.CSS_SELECTOR, "tbody.ant-table-tbody")
+                                    rows = orderbook_table.find_elements(By.CSS_SELECTOR, "tr")
+                                    
+                                    # Count rows with actual data (not measurement rows)
+                                    valid_rows = 0
+                                    for row in rows:
+                                        if not self.is_measurement_row(row):
+                                            cells = row.find_elements(By.TAG_NAME, 'td')
+                                            if len(cells) >= 3:
+                                                # Check if cells have content using improved logic
+                                                has_content = False
+                                                for i, cell in enumerate(cells[:3]):
+                                                    # Try direct text extraction first (simpler and more reliable)
+                                                    cell_text = cell.text.strip()
+                                                    if cell_text:
+                                                        has_content = True
+                                                        break
+                                                    
+                                                    # If direct text fails, try CSS selectors
+                                                    cell_text = self.extract_text_with_fallbacks(cell, [
+                                                        ".order-book-table_priceContent__NGers .order-book-table_price__Sevu0",
+                                                        ".order-book-table_price__Sevu0",
+                                                        ".order-book-table_sellPrice__xAuZe",
+                                                        ".order-book-table_itemH5Center__7tGxv .order-book-table_content__ZSAZ_",
+                                                        ".order-book-table_itemCenter__gUPZp .order-book-table_content__ZSAZ_",
+                                                        ".order-book-table_content__ZSAZ_",
+                                                        "span",
+                                                        "div"
+                                                    ], f"cell_{i}")
+                                                    if cell_text and cell_text.strip():
+                                                        has_content = True
+                                                        break
+                                                if has_content:
+                                                    valid_rows += 1
+                                    
+                                    # If we have at least 3 valid rows, data is loaded
+                                    if valid_rows >= 3:
+                                        print(f"        ✅ Data loaded: {valid_rows} valid rows found")
+                                        break
+                                    else:
+                                        print(f"        ⏳ Waiting for data... ({valid_rows} valid rows, retry {retry+1}/{max_retries})")
+                                        time.sleep(1)  # Wait 1 second before retry
+                                        
+                                except Exception as e:
+                                    print(f"        ⚠️  Error checking data: {e}")
+                                    time.sleep(1)
+                            
+                        except TimeoutException:
+                            print(f"        ⚠️  Timeout waiting for table to load on page {page_num}")
+                        
+                        # Debug: Check if there's actually data on this page
+                        print(f"        🔍 Debug: Checking page {page_num} content...")
+                        try:
+                            orderbook_table = driver.find_element(By.CSS_SELECTOR, "tbody.ant-table-tbody")
+                            rows = orderbook_table.find_elements(By.CSS_SELECTOR, "tr")
+                            print(f"        📊 Found {len(rows)} total rows on page {page_num}")
+                            
+                            # Check first few rows for content
+                            for i, row in enumerate(rows[:5]):
+                                if not self.is_measurement_row(row):
+                                    cells = row.find_elements(By.TAG_NAME, 'td')
+                                    if len(cells) >= 3:
+                                        cell_texts = [cell.text.strip() for cell in cells[:3]]
+                                        print(f"          Row {i+1}: {cell_texts}")
+                        except Exception as e:
+                            print(f"        ❌ Debug error: {e}")
                         
                         # Extract data from current page
                         current_page_entries = self.extract_current_page_orders(driver, symbol, crawled_at)
@@ -486,21 +928,90 @@ class MexcCorrectOrderBookCrawler:
         return pagination_entries
     
     def extract_current_page_orders(self, driver, symbol, crawled_at):
-        """Extract order book data from current page"""
+        """Extract order book data from current page with robust error handling"""
         page_entries = []
         
         try:
-            # Find order book table on current page
-            orderbook_table = driver.find_element(By.CSS_SELECTOR, "tbody.ant-table-tbody")
-            rows = orderbook_table.find_elements(By.CSS_SELECTOR, "tr.ant-table-row")
+            # Find order book table on current page with fallback selectors
+            orderbook_table = None
+            table_selectors = [
+                "tbody.ant-table-tbody",
+                "tbody",
+                ".ant-table-tbody",
+                "table tbody"
+            ]
             
-            for row in rows:
+            for selector in table_selectors:
                 try:
+                    orderbook_table = driver.find_element(By.CSS_SELECTOR, selector)
+                    print(f"        ✅ Found table with selector: {selector}")
+                    break
+                except NoSuchElementException:
+                    continue
+            
+            if not orderbook_table:
+                print(f"        ❌ Could not find order book table on current page")
+                return page_entries
+            
+            # Find rows with fallback selectors - include ALL tr elements to catch measurement rows
+            rows = []
+            row_selectors = [
+                "tr",  # Get ALL tr elements first, then filter
+                "tr.ant-table-row",
+                ".ant-table-row"
+            ]
+            
+            for selector in row_selectors:
+                try:
+                    rows = orderbook_table.find_elements(By.CSS_SELECTOR, selector)
+                    if rows:
+                        print(f"        ✅ Found {len(rows)} rows with selector: {selector}")
+                        break
+                except:
+                    continue
+            
+            if not rows:
+                print(f"        ⚠️  No rows found on current page")
+                return page_entries
+            
+            # Parse each row with improved error handling
+            valid_entries = 0
+            skipped_measurement_rows = 0
+            for i, row in enumerate(rows):
+                try:
+                    # Check if this is a measurement row first
+                    if self.is_measurement_row(row):
+                        skipped_measurement_rows += 1
+                        continue
+                    
+                    # Debug: Print row structure for first few rows
+                    if i < 3:
+                        cells = row.find_elements(By.TAG_NAME, 'td')
+                        print(f"        🔍 Debug row {i+1}: {len(cells)} cells")
+                        for j, cell in enumerate(cells[:3]):
+                            cell_text = cell.text.strip()
+                            cell_html = cell.get_attribute('outerHTML')[:100] + "..." if len(cell.get_attribute('outerHTML')) > 100 else cell.get_attribute('outerHTML')
+                            print(f"          Cell {j+1}: '{cell_text}' | HTML: {cell_html}")
+                    
                     order_data = self.parse_correct_orderbook_row(row, symbol, crawled_at)
                     if order_data:
                         page_entries.append(order_data)
+                        valid_entries += 1
+                        if i < 3:  # Show first few successful extractions
+                            print(f"        ✅ Row {i+1} extracted: {order_data}")
+                    else:
+                        print(f"        ⚠️  Row {i+1} returned empty data")
+                        # Debug: Show why it failed
+                        if i < 3:
+                            cells = row.find_elements(By.TAG_NAME, 'td')
+                            for j, cell in enumerate(cells[:3]):
+                                cell_text = cell.text.strip()
+                                print(f"          Cell {j+1} text: '{cell_text}'")
                 except Exception as e:
+                    print(f"        ❌ Error parsing row {i+1}: {e}")
                     continue
+            
+            print(f"        📊 Successfully parsed {valid_entries}/{len(rows)} rows (skipped {skipped_measurement_rows} measurement rows)")
                     
         except Exception as e:
             print(f"      ❌ Error extracting current page orders: {e}")
@@ -622,43 +1133,79 @@ class MexcCorrectOrderBookCrawler:
             if not token_data['name']:
                 token_data['name'] = token_data['symbol']
             
-            # Extract latest price
-            price_pattern = r'Giá giao dịch mới nhất\s*([\d,]+\.?\d*)'
-            price_match = re.search(price_pattern, item_text)
-            if price_match:
-                token_data['latest_price'] = price_match.group(1)
+            # Extract latest price using improved CSS selectors
+            try:
+                price_element = element.find_element(By.CSS_SELECTOR, ".pre-market-statistic_preMarketStatistic__e2_sE .contentValue")
+                if price_element:
+                    token_data['latest_price'] = price_element.text.strip()
+            except:
+                # Fallback to regex
+                price_pattern = r'Giá giao dịch mới nhất\s*([\d,]+\.?\d*)'
+                price_match = re.search(price_pattern, item_text)
+                if price_match:
+                    token_data['latest_price'] = price_match.group(1)
             
-            # Extract percentage change
-            change_pattern = r'([+-]?\d+\.?\d*%)'
-            change_match = re.search(change_pattern, item_text)
-            if change_match:
-                token_data['price_change_percent'] = change_match.group(1)
+            # Extract percentage change using improved CSS selectors
+            try:
+                change_element = element.find_element(By.CSS_SELECTOR, ".trade-list-item_pricePercent__b8g0H")
+                if change_element:
+                    token_data['price_change_percent'] = change_element.text.strip()
+            except:
+                # Fallback to regex
+                change_pattern = r'([+-]?\d+\.?\d*%)'
+                change_match = re.search(change_pattern, item_text)
+                if change_match:
+                    token_data['price_change_percent'] = change_match.group(1)
             
-            # Extract volume 24h
-            volume_24h_pattern = r'Khối lượng 24 giờ\s*([\d,]+\.?\d*[KMB]?)'
-            volume_24h_match = re.search(volume_24h_pattern, item_text)
-            if volume_24h_match:
-                token_data['volume_24h'] = volume_24h_match.group(1)
+            # Extract volume 24h using improved CSS selectors
+            try:
+                volume_elements = element.find_elements(By.CSS_SELECTOR, ".pre-market-statistic_preMarketStatistic__e2_sE .contentValue")
+                if len(volume_elements) >= 2:
+                    token_data['volume_24h'] = volume_elements[1].text.strip()
+            except:
+                # Fallback to regex
+                volume_24h_pattern = r'Khối lượng 24 giờ\s*([\d,]+\.?\d*[KMB]?)'
+                volume_24h_match = re.search(volume_24h_pattern, item_text)
+                if volume_24h_match:
+                    token_data['volume_24h'] = volume_24h_match.group(1)
             
-            # Extract total volume
-            total_volume_pattern = r'Tổng khối lượng\s*([\d,]+\.?\d*[KMB]?)'
-            total_volume_match = re.search(total_volume_pattern, item_text)
-            if total_volume_match:
-                token_data['total_volume'] = total_volume_match.group(1)
+            # Extract total volume using improved CSS selectors
+            try:
+                volume_elements = element.find_elements(By.CSS_SELECTOR, ".pre-market-statistic_preMarketStatistic__e2_sE .contentValue")
+                if len(volume_elements) >= 3:
+                    token_data['total_volume'] = volume_elements[2].text.strip()
+            except:
+                # Fallback to regex
+                total_volume_pattern = r'Tổng khối lượng\s*([\d,]+\.?\d*[KMB]?)'
+                total_volume_match = re.search(total_volume_pattern, item_text)
+                if total_volume_match:
+                    token_data['total_volume'] = total_volume_match.group(1)
             
-            # Extract start time
-            time_pattern = r'Đang diễn ra(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})'
-            time_match = re.search(time_pattern, item_text)
-            if time_match:
-                token_data['start_time'] = time_match.group(1)
+            # Extract start time using improved CSS selectors
+            try:
+                time_element = element.find_element(By.CSS_SELECTOR, ".trade-list-item_tradeTimeWrapper__8WVpM span[dir='ltr']")
+                if time_element:
+                    token_data['start_time'] = time_element.text.strip()
+            except:
+                # Fallback to regex
+                time_pattern = r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})'
+                time_match = re.search(time_pattern, item_text)
+                if time_match:
+                    token_data['start_time'] = time_match.group(1)
             
-            # Extract end time/status
-            end_time_patterns = [r'Đợi xác nhận', r'Đã kết thúc', r'Đang diễn ra']
-            for pattern in end_time_patterns:
-                end_match = re.search(pattern, item_text)
-                if end_match:
-                    token_data['end_time'] = pattern
-                    break
+            # Extract end time/status using improved CSS selectors
+            try:
+                status_element = element.find_element(By.CSS_SELECTOR, ".trade-list-item_tradeLabel__GK3Ih")
+                if status_element:
+                    token_data['end_time'] = status_element.text.strip()
+            except:
+                # Fallback to regex
+                end_time_patterns = [r'Đợi xác nhận', r'Đã kết thúc', r'Đang diễn ra']
+                for pattern in end_time_patterns:
+                    end_match = re.search(pattern, item_text)
+                    if end_match:
+                        token_data['end_time'] = pattern
+                        break
             
             # Alternative parsing
             if not token_data['latest_price']:
