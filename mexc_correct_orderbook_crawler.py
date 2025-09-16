@@ -190,8 +190,7 @@ class MexcCorrectOrderBookCrawler:
             
         finally:
             if driver:
-                driver.quit()
-    
+                driver.quit()    
     def crawl_token_list(self):
         """Crawl token list from pre-market page"""
         print("\n📋 Phase 1: Getting token list from pre-market...")
@@ -340,118 +339,387 @@ class MexcCorrectOrderBookCrawler:
         return orderbook_entries
     
     def extract_correct_orderbook(self, driver, symbol):
-        """Extract real order book data using correct CSS selectors"""
+        """Extract real order book data using correct CSS selectors for both BUY and SELL orders"""
         orderbook_entries = []
         crawled_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         try:
-            # Wait for order book table to load
-            wait = WebDriverWait(driver, 10)
-            
-            # Look for the order book table using correct CSS selector from HTML
-            orderbook_table = None
+            print(f"    🔍 Phase 1: Crawling SELL orders (lệnh bán) ONLY...")
+            # Try to click on SELL tab to ensure we're on the right table
+            print(f"    🔄 Trying to click on SELL tab...")
             try:
-                # Try to find the table with correct selector
-                orderbook_table = wait.until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, "tbody.ant-table-tbody"))
-                )
-                print(f"    ✅ Found order book table")
-            except TimeoutException:
-                print(f"    ⚠️  Order book table not found, trying alternative selectors...")
-                
-                # Try alternative selectors
-                alternative_selectors = [
-                    "table tbody",
-                    ".ant-table-tbody",
-                    "[class*='order-book'] table tbody",
-                    "tbody"
+                # Look for SELL tab or button
+                sell_tab_selectors = [
+                    "button[data-testid='sell-tab']",
+                    ".sell-tab",
+                    "button:contains('Sell')",
+                    "button:contains('Bán')",
+                    "[class*='sell'][class*='tab']",
+                    "[class*='tab'][class*='sell']"
                 ]
                 
-                for selector in alternative_selectors:
+                sell_tab_clicked = False
+                for selector in sell_tab_selectors:
                     try:
-                        orderbook_table = driver.find_element(By.CSS_SELECTOR, selector)
-                        print(f"    ✅ Found order book table with selector: {selector}")
+                        sell_tab = driver.find_element(By.CSS_SELECTOR, selector)
+                        driver.execute_script("arguments[0].click();", sell_tab)
+                        time.sleep(2)
+                        print(f"    ✅ Clicked SELL tab with selector: {selector}")
+                        sell_tab_clicked = True
                         break
-                    except NoSuchElementException:
-                        continue
-            
-            if orderbook_table:
-                # Extract order book rows using robust CSS selectors with fallbacks - include ALL tr elements
-                rows = []
-                row_selectors = [
-                    "tr",  # Get ALL tr elements first, then filter
-                    "tr.ant-table-row",
-                    ".ant-table-row"
-                ]
-                
-                for selector in row_selectors:
-                    try:
-                        rows = orderbook_table.find_elements(By.CSS_SELECTOR, selector)
-                        if rows:
-                            print(f"    ✅ Found {len(rows)} order book rows with selector: {selector}")
-                            break
                     except:
                         continue
                 
-                if not rows:
-                    print(f"    ⚠️  No rows found in order book table")
-                    return orderbook_entries
+                if not sell_tab_clicked:
+                    print(f"    ⚠️  Could not find SELL tab, continuing with current state")
                 
-                # Parse each row with improved error handling
-                valid_entries = 0
-                skipped_measurement_rows = 0
-                for i, row in enumerate(rows):
-                    try:
-                        # Check if this is a measurement row first
-                        if self.is_measurement_row(row):
-                            skipped_measurement_rows += 1
-                            continue
-                        
-                        # Extract data from each row using robust CSS selectors
-                        order_data = self.parse_correct_orderbook_row(row, symbol, crawled_at)
-                        if order_data:
-                            orderbook_entries.append(order_data)
-                            valid_entries += 1
-                            
-                        # Show progress for first few rows
-                        if i < 5 and order_data:
-                            print(f"      Row {i+1}: {order_data}")
-                            
-                    except Exception as e:
-                        print(f"      ❌ Error parsing row {i+1}: {e}")
-                        continue
-                
-                print(f"    📊 Successfully parsed {valid_entries}/{len(rows)} rows from first page (skipped {skipped_measurement_rows} measurement rows)")
-                
-                # Handle pagination to get ALL data from ALL pages
-                print(f"    🔄 Checking for pagination...")
-                pagination_entries = self.handle_pagination(driver, symbol, crawled_at)
-                orderbook_entries.extend(pagination_entries)
-                
-                if pagination_entries:
-                    print(f"    📊 Found {len(pagination_entries)} additional entries from pagination")
-                else:
-                    print(f"    ℹ️  No pagination found or only 1 page available")
+            except Exception as e:
+                print(f"    ⚠️  Could not click SELL tab: {e}")
             
-            else:
-                print(f"    ❌ Could not find order book table")
-                
+            # Extract SELL orders first (lệnh bán) - button text "Bán"
+            sell_entries = self.extract_orders_from_table(driver, symbol, crawled_at, 'SELL')
+            orderbook_entries.extend(sell_entries)
+            print(f"    ✅ SELL orders: {len(sell_entries)} entries")
+            
+            print(f"    🔍 Phase 2: Skipping BUY orders for now...")
+            # Skip BUY orders for now to test SELL orders only
+            print(f"    ⏭️  BUY orders skipped for testing")
+            
         except Exception as e:
-            print(f"    ❌ Error extracting order book: {e}")
+            print(f"    ❌ Error extracting order book: {str(e)}")
         
         return orderbook_entries
     
-    def get_current_page_number(self, driver):
+    def extract_orders_from_table(self, driver, symbol, crawled_at, order_type):
+        """Extract orders from specific table (SELL or BUY)"""
+        entries = []
+        
+        try:
+            # Determine table selector based on order type
+            if order_type == 'BUY':
+                # BUY orders (lệnh mua) - button "Mua" - are in the SELL table (confusing naming)
+                table_selector = ".order-book-table_sellTable__Dxd2s"
+                price_selector = ".order-book-table_sellPrice__xAuZe"
+                button_text = "Mua"
+            else:  # SELL
+                # SELL orders (lệnh bán) - button "Bán" - are in the BUY table (confusing naming)
+                table_selector = ".order-book-table_buyTable__xqBVW"
+                price_selector = ".order-book-table_buyPrice__uY0OB"
+                button_text = "Bán"
+                
+            # Wait for table to load
+            wait = WebDriverWait(driver, 10)
+            
+            try:
+                orderbook_table = wait.until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, table_selector))
+                )
+                print(f"    ✅ Found {order_type} orders table")
+            except TimeoutException:
+                print(f"    ⚠️  {order_type} orders table not found")
+                return entries
+            
+            # Extract rows
+            rows = orderbook_table.find_elements(By.CSS_SELECTOR, "tr")
+            
+            if not rows:
+                print(f"    ⚠️  No rows found in {order_type} table")
+                return entries
+            
+            print(f"    📊 Found {len(rows)} rows in {order_type} table")
+            
+            # Parse each row
+            valid_entries = 0
+            skipped_measurement_rows = 0
+            
+            for i, row in enumerate(rows):
+                try:
+                    # Check if this is a measurement row first
+                    if self.is_measurement_row(row):
+                        skipped_measurement_rows += 1
+                        continue
+                    
+                    # Extract data from each row
+                    order_data = self.parse_correct_orderbook_row(row, symbol, crawled_at, order_type, price_selector, button_text)
+                    if order_data:
+                        entries.append(order_data)
+                        valid_entries += 1
+                        
+                        # Show progress for first few rows
+                        if i < 5:
+                            print(f"      {order_type} Row {i+1}: {order_data}")
+                            
+                except Exception as e:
+                    print(f"      ❌ Error parsing {order_type} row {i+1}: {e}")
+                    continue
+            
+            print(f"    📊 Successfully parsed {valid_entries}/{len(rows)} {order_type} rows (skipped {skipped_measurement_rows} measurement rows)")
+            
+            # Handle pagination for this order type
+            print(f"    🔄 Checking for {order_type} orders pagination...")
+            pagination_entries = self.handle_pagination_for_order_type(driver, symbol, crawled_at, order_type, table_selector, price_selector, button_text)
+            entries.extend(pagination_entries)
+            
+            if pagination_entries:
+                print(f"    📊 Found {len(pagination_entries)} additional {order_type} entries from pagination")
+            else:
+                print(f"    ℹ️  No pagination found for {order_type} orders or only 1 page available")
+            
+        except Exception as e:
+            print(f"    ❌ Error extracting {order_type} orders: {e}")
+        
+        return entries
+    
+    def handle_pagination_for_order_type(self, driver, symbol, crawled_at, order_type, table_selector, price_selector, button_text):
+        """Handle pagination for specific order type (BUY or SELL)"""
+        pagination_entries = []
+        
+        try:
+            # Check if pagination exists - use specific selector based on order type
+            if order_type == 'BUY':
+                # BUY orders use the first pagination (after sellTable)
+                pagination_selectors = [
+                    ".order-book-table_sellTable__Dxd2s + .order-book-table_paginationWrapper__O_FJg",
+                    ".order-book-table_paginationWrapper__O_FJg:first-of-type",
+                    ".order-book-table_paginationWrapper__O_FJg",
+                    ".ant-pagination",
+                    "[class*='pagination']"
+                ]
+            else:  # SELL
+                # SELL orders use the second pagination (after buyTable)
+                pagination_selectors = [
+                    ".order-book-table_buyTable__xqBVW + .order-book-table_paginationWrapper__O_FJg",
+                    ".order-book-table_paginationWrapper__O_FJg:last-of-type",
+                    ".order-book-table_paginationWrapper__O_FJg",
+                    ".ant-pagination",
+                    "[class*='pagination']"
+                ]
+            
+            pagination = None
+            for selector in pagination_selectors:
+                try:
+                    pagination = driver.find_element(By.CSS_SELECTOR, selector)
+                    print(f"      ✅ Found pagination with selector: {selector}")
+                    break
+                except NoSuchElementException:
+                    continue
+            
+            if not pagination:
+                print(f"      ℹ️  No pagination found for {order_type} orders")
+                return pagination_entries
+            
+            # For SELL orders, we need to check if we're on the correct tab/section
+            if order_type == 'SELL':
+                print(f"      🔍 Checking if we're on SELL orders section...")
+                # Try to find SELL table first to ensure we're on the right section
+                try:
+                    sell_table = driver.find_element(By.CSS_SELECTOR, ".order-book-table_sellTable__Dxd2s")
+                    print(f"      ✅ Confirmed SELL table is visible")
+                except NoSuchElementException:
+                    print(f"      ⚠️  SELL table not visible, trying to switch to SELL section...")
+                    # Try to click on SELL tab if it exists
+                    try:
+                        sell_tab = driver.find_element(By.CSS_SELECTOR, "[class*='sell'], [class*='Sell'], [title*='Sell'], [title*='sell']")
+                        driver.execute_script("arguments[0].click();", sell_tab)
+                        time.sleep(2)
+                        print(f"      ✅ Clicked SELL tab")
+                    except NoSuchElementException:
+                        print(f"      ℹ️  No SELL tab found, continuing with current section")
+            
+            # Get pagination info
+            try:
+                page_items = pagination.find_elements(By.CSS_SELECTOR, ".ant-pagination-item")
+                if not page_items:
+                    print(f"      ℹ️  No page items found for {order_type} orders")
+                    return pagination_entries
+                
+                # Get max page number
+                max_page = 1
+                for item in page_items:
+                    try:
+                        page_num = int(item.get_attribute('title'))
+                        max_page = max(max_page, page_num)
+                    except:
+                        continue
+                
+                print(f"      📄 Found {len(page_items)} pagination pages, max page: {max_page}")
+                
+                if max_page <= 1:
+                    print(f"      ℹ️  Only 1 page for {order_type} orders, no pagination needed")
+                    return pagination_entries
+                
+                # Process additional pages (skip page 1 as it's already processed)
+                print(f"      🔄 FULL CRAWL MODE: Processing ALL pages from 2 to {max_page} for {order_type} orders")
+                pages_to_process = list(range(2, max_page + 1))
+                print(f"      📄 All pages to process: {pages_to_process}")
+                
+                # Debug: Check current page before starting pagination
+                try:
+                    current_page = self.get_current_page_number(driver)
+                    print(f"      🔍 Current page before pagination: {current_page}")
+                except:
+                    print(f"      ⚠️  Could not determine current page")
+                
+                for page_num in pages_to_process:
+                    try:
+                        print(f"      🔄 Processing {order_type} page {page_num}...")
+                        
+                        # Find and click page link
+                        page_link = None
+                        page_selectors = [
+                            f".ant-pagination-item-{page_num}",
+                            f"[title='{page_num}']",
+                            f"li[title='{page_num}']",
+                            f"a[title='{page_num}']",
+                            f"button[title='{page_num}']"
+                        ]
+                        
+                        for selector in page_selectors:
+                            try:
+                                page_link = pagination.find_element(By.CSS_SELECTOR, selector)
+                                break
+                            except NoSuchElementException:
+                                continue
+                        
+                        # If still not found, try to find by text content
+                        if not page_link:
+                            try:
+                                page_links = pagination.find_elements(By.CSS_SELECTOR, ".ant-pagination-item")
+                                for link in page_links:
+                                    if link.text.strip() == str(page_num):
+                                        page_link = link
+                                        break
+                            except:
+                                pass
+                        
+                        if not page_link:
+                            print(f"        ❌ Page {page_num} link not found for {order_type} orders")
+                            # For SELL orders, try to scroll to see more pagination
+                            if order_type == 'SELL':
+                                print(f"        🔄 Trying to scroll to find more pagination for SELL orders...")
+                                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                                time.sleep(1)
+                                # Try again after scrolling
+                                for selector in page_selectors:
+                                    try:
+                                        page_link = pagination.find_element(By.CSS_SELECTOR, selector)
+                                        break
+                                    except NoSuchElementException:
+                                        continue
+                                if not page_link:
+                                    print(f"        ❌ Page {page_num} still not found after scrolling")
+                                    continue
+                            else:
+                                continue
+                        
+                        # Click page link
+                        driver.execute_script("arguments[0].click();", page_link)
+                        print(f"        Found page link using CSS selector for page {page_num}")
+                        print(f"        Successfully clicked page {page_num}")
+                        
+                        # Wait for data to load with longer timeout
+                        time.sleep(5)
+                        print(f"        ⏳ Waiting for JavaScript to populate data...")
+                        
+                        # Scroll to trigger data loading
+                        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                        time.sleep(2)
+                        driver.execute_script("window.scrollTo(0, 0);")
+                        time.sleep(2)
+                        
+                        # Additional wait for pagination to update
+                        time.sleep(3)
+                        
+                        # Debug: Check if we're actually on the correct page
+                        try:
+                            current_page = self.get_current_page_number(driver)
+                            print(f"        🔍 After click: Current page is {current_page}")
+                            if current_page != page_num:
+                                print(f"        ⚠️  Page mismatch! Expected {page_num}, got {current_page}")
+                        except:
+                            print(f"        ⚠️  Could not determine current page after click")
+                        
+                        # Check if data loaded
+                        try:
+                            table = driver.find_element(By.CSS_SELECTOR, table_selector)
+                            rows = table.find_elements(By.CSS_SELECTOR, "tr")
+                            valid_rows = [row for row in rows if not self.is_measurement_row(row)]
+                            
+                            if valid_rows:
+                                print(f"        ✅ Data loaded: {len(valid_rows)} valid rows found")
+                            else:
+                                print(f"        ⚠️  No valid data found on page {page_num}")
+                                continue
+                                
+                        except NoSuchElementException:
+                            print(f"        ⚠️  Table not found on page {page_num}")
+                            continue
+                        
+                        # Extract data from current page
+                        page_entries = []
+                        for i, row in enumerate(valid_rows):
+                            try:
+                                order_data = self.parse_correct_orderbook_row(row, symbol, crawled_at, order_type, price_selector, button_text)
+                                if order_data:
+                                    page_entries.append(order_data)
+                            except Exception as e:
+                                print(f"        ❌ Error parsing {order_type} row {i+1} on page {page_num}: {e}")
+                                continue
+                        
+                        # Debug: Show first few entries from this page to check for duplicates
+                        if page_entries:
+                            print(f"        🔍 Sample data from page {page_num}:")
+                            for i, entry in enumerate(page_entries[:3]):  # Show first 3 entries
+                                print(f"          Entry {i+1}: {entry['price']} x {entry['quantity']} = {entry['total']}")
+                        
+                        # Debug: Check which table we're actually reading from
+                        try:
+                            current_table = driver.find_element(By.CSS_SELECTOR, table_selector)
+                            table_class = current_table.get_attribute("class")
+                            print(f"        🔍 Table class: {table_class}")
+                            
+                            # Check if we're reading from the correct table
+                            if order_type == 'BUY' and 'sellTable' not in table_class:
+                                print(f"        ⚠️  WARNING: Reading from wrong table for BUY orders! (should be sellTable)")
+                            elif order_type == 'SELL' and 'buyTable' not in table_class:
+                                print(f"        ⚠️  WARNING: Reading from wrong table for SELL orders! (should be buyTable)")
+                        except Exception as e:
+                            print(f"        ⚠️  Could not check table class: {e}")
+                        
+                        pagination_entries.extend(page_entries)
+                        print(f"      📊 Page {page_num}: {len(page_entries)} {order_type} entries")
+                        
+                    except Exception as e:
+                        print(f"      ❌ Error processing {order_type} page {page_num}: {e}")
+                        continue
+                
+                print(f"      ✅ Completed {order_type} pagination: {len(pagination_entries)} total additional entries from {len(pages_to_process)} pages")
+                
+            except Exception as e:
+                print(f"      ❌ Error handling {order_type} pagination: {e}")
+                
+        except Exception as e:
+            print(f"      ❌ Error in {order_type} pagination handler: {e}")
+        
+        return pagination_entries
+    
+    def get_current_page_number(self, driver, order_type='BUY'):
         """Get the current page number from pagination"""
         try:
-            pagination = driver.find_element(By.CSS_SELECTOR, ".order-book-table_paginationWrapper__O_FJg")
+            # Use specific pagination selector based on order type
+            if order_type == 'BUY':
+                pagination_selector = ".order-book-table_sellTable__Dxd2s + .order-book-table_paginationWrapper__O_FJg"
+            else:  # SELL
+                pagination_selector = ".order-book-table_buyTable__xqBVW + .order-book-table_paginationWrapper__O_FJg"
+            
+            pagination = driver.find_element(By.CSS_SELECTOR, pagination_selector)
             active_item = pagination.find_element(By.CSS_SELECTOR, ".ant-pagination-item-active")
             page_num = int(active_item.get_attribute('title'))
             return page_num
         except:
             return 1
     
-    def parse_correct_orderbook_row(self, row_element, symbol, crawled_at):
+    def parse_correct_orderbook_row(self, row_element, symbol, crawled_at, order_type=None, price_selector=None, button_text=None):
         """Parse order book data from a table row using robust CSS selectors with fallbacks"""
         try:
             # Skip Ant Design measurement rows (hidden rows used for table calculations)
@@ -467,20 +735,28 @@ class MexcCorrectOrderBookCrawler:
                 print(f"      ⚠️  Row has only {len(cells)} cells, expected at least 3")
                 return None
             
-            # Extract price from first cell with multiple fallback selectors
-            # Handle both page 1 structure and page 2+ structure
-            price = self.extract_text_with_fallbacks(cells[0], [
-                # Page 1 structure
-                ".order-book-table_priceContent__NGers .order-book-table_price__Sevu0",
-                ".order-book-table_price__Sevu0",
-                # Page 2+ structure  
-                ".order-book-table_sellPrice__xAuZe",
-                # Generic fallbacks
-                "[class*='sellPrice']",
-                "[class*='price']",
-                "span",
-                "div"
-            ], "price")
+            # Extract price from first cell with specific selector for order type
+            price = ''
+            if price_selector:
+                # Use specific price selector for the order type
+                price = self.extract_text_with_fallbacks(cells[0], [price_selector], "price")
+            
+            # Fallback to generic selectors if specific selector fails
+            if not price:
+                price = self.extract_text_with_fallbacks(cells[0], [
+                    # Page 1 structure
+                    ".order-book-table_priceContent__NGers .order-book-table_price__Sevu0",
+                    ".order-book-table_price__Sevu0",
+                    # Page 2+ structure  
+                    ".order-book-table_sellPrice__xAuZe",
+                    ".order-book-table_buyPrice__uY0OB",
+                    # Generic fallbacks
+                    "[class*='sellPrice']",
+                    "[class*='buyPrice']",
+                    "[class*='price']",
+                    "span",
+                    "div"
+                ], "price")
             
             # If price is still empty, try direct text extraction from the cell
             if not price:
@@ -529,8 +805,27 @@ class MexcCorrectOrderBookCrawler:
                 print(f"      ⚠️  Skipping row with all empty data")
                 return None
             
-            # Determine order type based on button text or cell content
-            order_type = 'SELL'  # Based on HTML, these are sell orders (with "Mua" button)
+            # Extract order type from button text in the same row
+            if button_text:
+                # Use provided button text (Mua/Bán)
+                order_type = button_text
+            else:
+                # Fallback: try to find button and extract text directly
+                order_type = 'Mua'  # Default fallback
+                try:
+                    button = row_element.find_element(By.CSS_SELECTOR, ".order-book-table_doBtn__R6taG span")
+                    button_text_found = button.text.strip()
+                    
+                    # Use the actual button text directly (Mua/Bán)
+                    order_type = button_text_found
+                        
+                except NoSuchElementException:
+                    # Fallback: try to determine from button text in the row
+                    row_text = row_element.text
+                    if 'Mua' in row_text:
+                        order_type = 'Mua'
+                    elif 'Bán' in row_text:
+                        order_type = 'Bán'
             
             # Create order entry
             order_entry = {
@@ -1355,20 +1650,21 @@ def main(target_symbol=None):
         print("❌ No data was extracted. Please check your setup and try again.")
 
 
-def main_stbl_only():
-    """Main function to crawl only STBL token for testing"""
-    print("🚀 MEXC STBL Only Crawler (Full Pagination Test)")
-    print("Target: STBL token with ALL pagination pages")
+def main_mento_only():
+    """Main function to crawl only MENTO token for testing"""
+    print("🚀 MEXC MENTO Only Crawler (Full Pagination Test)")
+    print("Target: MENTO token with ALL pagination pages")
     print("=" * 60)
     
-    main(target_symbol="STBL")
+    main(target_symbol="MENTO")
 
 
 if __name__ == "__main__":
     import sys
     
-    # Check if STBL-only mode is requested
-    if len(sys.argv) > 1 and sys.argv[1].upper() == "STBL":
-        main_stbl_only()
+    # Check if MENTO-only mode is requested
+    if len(sys.argv) > 1 and sys.argv[1].upper() == "MENTO":
+        main_mento_only()
     else:
         main()
+
