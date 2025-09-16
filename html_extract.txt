@@ -275,255 +275,595 @@
    </li>
 </ul>
 
--- HTML cho order_bookbook bao gồm phân trangtrang
-<div class="order-book-table_mobileTable__OVS1F order-book-table_mobileBuyTable__CM9JP order-book-table_hasDataTable__qHwPd">
-    <div class="ant-table-wrapper mx-table-border order-book-table_table__1eTBS">
-        <div class="ant-spin-nested-loading">
-            <div class="ant-spin-container">
-                <div class="ant-table ant-table-small ant-table-fixed-header ant-table-scroll-horizontal">
-                    <div class="ant-table-container">
-                        <div class="ant-table-header" style="overflow: hidden;">
-                            <table style="table-layout: fixed;">
-                                <colgroup>
-                                    <col style="width: 155.8px;" />
-                                    <col style="width: 155.8px;" />
-                                    <col style="width: 155.8px;" />
-                                    <col style="width: 155.8px;" />
-                                    <col style="width: 15px;" />
-                                </colgroup>
-                                <thead class="ant-table-thead">
-                                    <tr>
-                                        <th class="ant-table-cell" scope="col">Giá</th>
-                                        <th class="ant-table-cell" scope="col">Số lượng</th>
-                                        <th class="ant-table-cell" scope="col" style="text-align: right;">Số lượng</th>
-                                        <th class="ant-table-cell" scope="col" style="text-align: right;">Thao tác</th>
-                                        <th class="ant-table-cell ant-table-cell-scrollbar"></th>
-                                    </tr>
-                                </thead>
-                            </table>
-                        </div>
-                        <div class="ant-table-body" style="overflow: auto scroll; max-height: 100%;">
-                            <table style="width: 100%; min-width: 100%; table-layout: fixed;">
-                                <colgroup></colgroup>
-                                <tbody class="ant-table-tbody">
-                                    <tr aria-hidden="true" class="ant-table-measure-row" style="height: 0px; font-size: 0px;">
-                                        <td style="padding: 0px; border: 0px; height: 0px;"><div style="height: 0px; overflow: hidden;">&nbsp;</div></td>
-                                        <td style="padding: 0px; border: 0px; height: 0px;"><div style="height: 0px; overflow: hidden;">&nbsp;</div></td>
-                                        <td style="padding: 0px; border: 0px; height: 0px;"><div style="height: 0px; overflow: hidden;">&nbsp;</div></td>
-                                        <td style="padding: 0px; border: 0px; height: 0px;"><div style="height: 0px; overflow: hidden;">&nbsp;</div></td>
-                                    </tr>
-                                    <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596155030348767232">
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_priceContent__NGers"><div class="order-book-table_ltr__G9P_6 order-book-table_price__Sevu0 order-book-table_shrinkSize__YlP61">0.0595</div></div>
-                                        </td>
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">24,000</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">1,428.0000</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_sellBtnWrapper__5JMPD">
-                                                <button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__595707408827822080">
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_priceContent__NGers"><div class="order-book-table_ltr__G9P_6 order-book-table_price__Sevu0 order-book-table_shrinkSize__YlP61">0.0600</div></div>
-                                        </td>
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">10,000</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">600.0000</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_sellBtnWrapper__5JMPD">
-                                                <button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596160523439972352">
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_priceContent__NGers"><div class="order-book-table_ltr__G9P_6 order-book-table_price__Sevu0 order-book-table_shrinkSize__YlP61">0.0650</div></div>
-                                        </td>
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">1,500</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">97.5000</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_sellBtnWrapper__5JMPD">
-                                                <button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596162876654235648">
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_priceContent__NGers"><div class="order-book-table_ltr__G9P_6 order-book-table_price__Sevu0 order-book-table_shrinkSize__YlP61">0.0660</div></div>
-                                        </td>
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">500</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">33.0000</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_sellBtnWrapper__5JMPD">
-                                                <button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__595115247447056384">
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_priceContent__NGers"><div class="order-book-table_ltr__G9P_6 order-book-table_price__Sevu0 order-book-table_shrinkSize__YlP61">0.0660</div></div>
-                                        </td>
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">1,500</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">99.0000</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_sellBtnWrapper__5JMPD">
-                                                <button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596162803568484352">
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_priceContent__NGers"><div class="order-book-table_ltr__G9P_6 order-book-table_price__Sevu0 order-book-table_shrinkSize__YlP61">0.0685</div></div>
-                                        </td>
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">500</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">34.2500</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_sellBtnWrapper__5JMPD">
-                                                <button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596160694546604032">
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_priceContent__NGers"><div class="order-book-table_ltr__G9P_6 order-book-table_price__Sevu0 order-book-table_shrinkSize__YlP61">0.0685</div></div>
-                                        </td>
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">1,500</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">102.7500</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_sellBtnWrapper__5JMPD">
-                                                <button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596162996930097152">
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_priceContent__NGers"><div class="order-book-table_ltr__G9P_6 order-book-table_price__Sevu0 order-book-table_shrinkSize__YlP61">0.0700</div></div>
-                                        </td>
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">300</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">21.0000</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_sellBtnWrapper__5JMPD">
-                                                <button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596162733221617664">
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_priceContent__NGers"><div class="order-book-table_ltr__G9P_6 order-book-table_price__Sevu0 order-book-table_shrinkSize__YlP61">0.0746</div></div>
-                                        </td>
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">500</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">37.3000</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_sellBtnWrapper__5JMPD">
-                                                <button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596162686195081216">
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_priceContent__NGers"><div class="order-book-table_ltr__G9P_6 order-book-table_price__Sevu0 order-book-table_shrinkSize__YlP61">0.0746</div></div>
-                                        </td>
-                                        <td class="ant-table-cell">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">1,000</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_itemH5Center__7tGxv"><div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">74.6000</div></div>
-                                        </td>
-                                        <td class="ant-table-cell" style="text-align: right;">
-                                            <div class="order-book-table_sellBtnWrapper__5JMPD">
-                                                <button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+-- HTML cho order_bookbook bao gồm phân trang cho lệnh bán
+<div class="order-book-table_sellTable__Dxd2s" dir="rtl">
+   <div class="ant-table-wrapper mx-table-border order-book-table_table__1eTBS order-book-table_hasDataTable__qHwPd">
+      <div class="ant-spin-nested-loading">
+         <div class="ant-spin-container">
+            <div class="ant-table ant-table-middle ant-table-fixed-header ant-table-scroll-horizontal">
+               <div class="ant-table-container">
+                  <div class="ant-table-header" style="overflow: hidden;">
+                     <table style="table-layout: fixed;">
+                        <colgroup>
+                           <col style="width: 117.8px;">
+                           <col style="width: 117.8px;">
+                           <col style="width: 117.8px;">
+                           <col style="width: 117.8px;">
+                           <col style="width: 10px;">
+                        </colgroup>
+                        <thead class="ant-table-thead">
+                           <tr>
+                              <th class="ant-table-cell ant-table-cell-ellipsis" title="" style="text-align: right;"></th>
+                              <th class="ant-table-cell ant-table-cell-ellipsis" title="Số lượng" scope="col">Số lượng</th>
+                              <th class="ant-table-cell ant-table-cell-ellipsis" title="Số lượng" scope="col">Số lượng</th>
+                              <th class="ant-table-cell" scope="col">Thao tác</th>
+                              <th class="ant-table-cell ant-table-cell-scrollbar"></th>
+                           </tr>
+                        </thead>
+                     </table>
+                  </div>
+                  <div class="ant-table-body" style="overflow: auto scroll; max-height: 100%;">
+                     <table style="width: 100%; min-width: 100%; table-layout: fixed;">
+                        <colgroup></colgroup>
+                        <tbody class="ant-table-tbody">
+                           <tr aria-hidden="true" class="ant-table-measure-row" style="height: 0px; font-size: 0px;">
+                              <td style="padding: 0px; border: 0px; height: 0px;">
+                                 <div style="height: 0px; overflow: hidden;">&nbsp;</div>
+                              </td>
+                              <td style="padding: 0px; border: 0px; height: 0px;">
+                                 <div style="height: 0px; overflow: hidden;">&nbsp;</div>
+                              </td>
+                              <td style="padding: 0px; border: 0px; height: 0px;">
+                                 <div style="height: 0px; overflow: hidden;">&nbsp;</div>
+                              </td>
+                              <td style="padding: 0px; border: 0px; height: 0px;">
+                                 <div style="height: 0px; overflow: hidden;">&nbsp;</div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596433295361716224">
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_sell__lOOYU order-book-table_sellBtnWrapper__5JMPD">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_sellPrice__xAuZe order-book-table_shrinkSize__YlP61">0.1240</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">10,000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">1,240.0000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell">
+                                 <div class="order-book-table_sellBtnWrapper__5JMPD"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596382513748783104">
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_sell__lOOYU order-book-table_sellBtnWrapper__5JMPD">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_sellPrice__xAuZe order-book-table_shrinkSize__YlP61">0.1240</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">5,000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">620.0000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell">
+                                 <div class="order-book-table_sellBtnWrapper__5JMPD"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596266386087485440">
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_sell__lOOYU order-book-table_sellBtnWrapper__5JMPD">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_sellPrice__xAuZe order-book-table_shrinkSize__YlP61">0.1299</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">5,000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">649.5000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell">
+                                 <div class="order-book-table_sellBtnWrapper__5JMPD"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596351714643161088">
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_sell__lOOYU order-book-table_sellBtnWrapper__5JMPD">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_sellPrice__xAuZe order-book-table_shrinkSize__YlP61">0.1366</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">450</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">61.4700</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell">
+                                 <div class="order-book-table_sellBtnWrapper__5JMPD"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596351640684994560">
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_sell__lOOYU order-book-table_sellBtnWrapper__5JMPD">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_sellPrice__xAuZe order-book-table_shrinkSize__YlP61">0.1430</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">400</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">57.2000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell">
+                                 <div class="order-book-table_sellBtnWrapper__5JMPD"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596255847416340480">
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_sell__lOOYU order-book-table_sellBtnWrapper__5JMPD">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_sellPrice__xAuZe order-book-table_shrinkSize__YlP61">0.1590</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">500</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">79.5000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell">
+                                 <div class="order-book-table_sellBtnWrapper__5JMPD"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596255766160089088">
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_sell__lOOYU order-book-table_sellBtnWrapper__5JMPD">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_sellPrice__xAuZe order-book-table_shrinkSize__YlP61">0.1590</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">500</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">79.5000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell">
+                                 <div class="order-book-table_sellBtnWrapper__5JMPD"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596242397516537856">
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_sell__lOOYU order-book-table_sellBtnWrapper__5JMPD">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_sellPrice__xAuZe order-book-table_shrinkSize__YlP61">0.1596</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">2,100</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">335.1600</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell">
+                                 <div class="order-book-table_sellBtnWrapper__5JMPD"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596242555713101824">
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_sell__lOOYU order-book-table_sellBtnWrapper__5JMPD">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_sellPrice__xAuZe order-book-table_shrinkSize__YlP61">0.1597</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">2,100</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">335.3700</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell">
+                                 <div class="order-book-table_sellBtnWrapper__5JMPD"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596242770805403648">
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_sell__lOOYU order-book-table_sellBtnWrapper__5JMPD">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_sellPrice__xAuZe order-book-table_shrinkSize__YlP61">0.1598</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">2,100</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">335.5800</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell">
+                                 <div class="order-book-table_sellBtnWrapper__5JMPD"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Mua</span></button></div>
+                              </td>
+                           </tr>
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
             </div>
-        </div>
-    </div>
-    <div class="order-book-table_mobilePaginationWrapper__UfCbs">
-        <ul class="ant-pagination ant-pagination-mini ant-pagination-ltr" unselectable="unselectable">
-            <li title="Previous Page" class="ant-pagination-prev ant-pagination-disabled" aria-disabled="true">
-                <button class="ant-pagination-item-link" type="button" tabindex="-1" disabled="">
-                    <span role="img" aria-label="left" class="anticon anticon-left">
-                        <svg viewBox="64 64 896 896" focusable="false" data-icon="left" width="1em" height="1em" fill="currentColor" aria-hidden="true">
-                            <path d="M724 218.3V141c0-6.7-7.7-10.4-12.9-6.3L260.3 486.8a31.86 31.86 0 000 50.3l450.8 352.1c5.3 4.1 12.9.4 12.9-6.3v-77.3c0-4.9-2.3-9.6-6.1-12.6l-360-281 360-281.1c3.8-3 6.1-7.7 6.1-12.6z"></path>
-                        </svg>
-                    </span>
-                </button>
-            </li>
-            <li title="1" class="ant-pagination-item ant-pagination-item-1 ant-pagination-item-active" tabindex="0"><a rel="nofollow">1</a></li>
-            <li title="2" class="ant-pagination-item ant-pagination-item-2" tabindex="0"><a rel="nofollow">2</a></li>
-            <li title="3" class="ant-pagination-item ant-pagination-item-3" tabindex="0"><a rel="nofollow">3</a></li>
-            <li title="4" class="ant-pagination-item ant-pagination-item-4" tabindex="0"><a rel="nofollow">4</a></li>
-            <li title="5" class="ant-pagination-item ant-pagination-item-5 ant-pagination-item-before-jump-next" tabindex="0"><a rel="nofollow">5</a></li>
-            <li title="Next 5 Pages" tabindex="0" class="ant-pagination-jump-next ant-pagination-jump-next-custom-icon">
-                <a class="ant-pagination-item-link">
-                    <div class="ant-pagination-item-container">
-                        <span role="img" aria-label="double-right" class="anticon anticon-double-right ant-pagination-item-link-icon">
-                            <svg viewBox="64 64 896 896" focusable="false" data-icon="double-right" width="1em" height="1em" fill="currentColor" aria-hidden="true">
-                                <path
-                                    d="M533.2 492.3L277.9 166.1c-3-3.9-7.7-6.1-12.6-6.1H188c-6.7 0-10.4 7.7-6.3 12.9L447.1 512 181.7 851.1A7.98 7.98 0 00188 864h77.3c4.9 0 9.6-2.3 12.6-6.1l255.3-326.1c9.1-11.7 9.1-27.9 0-39.5zm304 0L581.9 166.1c-3-3.9-7.7-6.1-12.6-6.1H492c-6.7 0-10.4 7.7-6.3 12.9L751.1 512 485.7 851.1A7.98 7.98 0 00492 864h77.3c4.9 0 9.6-2.3 12.6-6.1l255.3-326.1c9.1-11.7 9.1-27.9 0-39.5z"
-                                ></path>
-                            </svg>
-                        </span>
-                        <span class="ant-pagination-item-ellipsis">•••</span>
-                    </div>
-                </a>
-            </li>
-            <li title="25" class="ant-pagination-item ant-pagination-item-25" tabindex="0"><a rel="nofollow">25</a></li>
-            <li title="Next Page" tabindex="0" class="ant-pagination-next" aria-disabled="false">
-                <button class="ant-pagination-item-link" type="button" tabindex="-1">
-                    <span role="img" aria-label="right" class="anticon anticon-right">
-                        <svg viewBox="64 64 896 896" focusable="false" data-icon="right" width="1em" height="1em" fill="currentColor" aria-hidden="true">
-                            <path d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.96 31.96 0 000-50.4z"></path>
-                        </svg>
-                    </span>
-                </button>
-            </li>
-        </ul>
-    </div>
+         </div>
+      </div>
+   </div>
+   <div class="order-book-table_paginationWrapper__O_FJg" dir="ltr">
+      <ul class="ant-pagination ant-pagination-mini ant-pagination-ltr" unselectable="unselectable">
+         <li title="Previous Page" class="ant-pagination-prev ant-pagination-disabled" aria-disabled="true">
+            <button class="ant-pagination-item-link" type="button" tabindex="-1" disabled="">
+               <span role="img" aria-label="left" class="anticon anticon-left">
+                  <svg viewBox="64 64 896 896" focusable="false" data-icon="left" width="1em" height="1em" fill="currentColor" aria-hidden="true">
+                     <path d="M724 218.3V141c0-6.7-7.7-10.4-12.9-6.3L260.3 486.8a31.86 31.86 0 000 50.3l450.8 352.1c5.3 4.1 12.9.4 12.9-6.3v-77.3c0-4.9-2.3-9.6-6.1-12.6l-360-281 360-281.1c3.8-3 6.1-7.7 6.1-12.6z"></path>
+                  </svg>
+               </span>
+            </button>
+         </li>
+         <li title="1" class="ant-pagination-item ant-pagination-item-1 ant-pagination-item-active" tabindex="0"><a rel="nofollow">1</a></li>
+         <li title="2" class="ant-pagination-item ant-pagination-item-2" tabindex="0"><a rel="nofollow">2</a></li>
+         <li title="3" class="ant-pagination-item ant-pagination-item-3" tabindex="0"><a rel="nofollow">3</a></li>
+         <li title="4" class="ant-pagination-item ant-pagination-item-4" tabindex="0"><a rel="nofollow">4</a></li>
+         <li title="5" class="ant-pagination-item ant-pagination-item-5 ant-pagination-item-before-jump-next" tabindex="0"><a rel="nofollow">5</a></li>
+         <li title="Next 5 Pages" tabindex="0" class="ant-pagination-jump-next ant-pagination-jump-next-custom-icon">
+            <a class="ant-pagination-item-link">
+               <div class="ant-pagination-item-container">
+                  <span role="img" aria-label="double-right" class="anticon anticon-double-right ant-pagination-item-link-icon">
+                     <svg viewBox="64 64 896 896" focusable="false" data-icon="double-right" width="1em" height="1em" fill="currentColor" aria-hidden="true">
+                        <path d="M533.2 492.3L277.9 166.1c-3-3.9-7.7-6.1-12.6-6.1H188c-6.7 0-10.4 7.7-6.3 12.9L447.1 512 181.7 851.1A7.98 7.98 0 00188 864h77.3c4.9 0 9.6-2.3 12.6-6.1l255.3-326.1c9.1-11.7 9.1-27.9 0-39.5zm304 0L581.9 166.1c-3-3.9-7.7-6.1-12.6-6.1H492c-6.7 0-10.4 7.7-6.3 12.9L751.1 512 485.7 851.1A7.98 7.98 0 00492 864h77.3c4.9 0 9.6-2.3 12.6-6.1l255.3-326.1c9.1-11.7 9.1-27.9 0-39.5z"></path>
+                     </svg>
+                  </span>
+                  <span class="ant-pagination-item-ellipsis">•••</span>
+               </div>
+            </a>
+         </li>
+         <li title="24" class="ant-pagination-item ant-pagination-item-24" tabindex="0"><a rel="nofollow">24</a></li>
+         <li title="Next Page" tabindex="0" class="ant-pagination-next" aria-disabled="false">
+            <button class="ant-pagination-item-link" type="button" tabindex="-1">
+               <span role="img" aria-label="right" class="anticon anticon-right">
+                  <svg viewBox="64 64 896 896" focusable="false" data-icon="right" width="1em" height="1em" fill="currentColor" aria-hidden="true">
+                     <path d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.96 31.96 0 000-50.4z"></path>
+                  </svg>
+               </span>
+            </button>
+         </li>
+      </ul>
+   </div>
 </div>
 
+-- HTML cho order_bookbook bao gồm phân trang cho lệnh mua
+<div class="order-book-table_buyTable__xqBVW">
+   <div class="ant-table-wrapper mx-table-border order-book-table_table__1eTBS order-book-table_hasDataTable__qHwPd">
+      <div class="ant-spin-nested-loading">
+         <div class="ant-spin-container">
+            <div class="ant-table ant-table-middle ant-table-fixed-header ant-table-scroll-horizontal">
+               <div class="ant-table-container">
+                  <div class="ant-table-header" style="overflow: hidden;">
+                     <table style="table-layout: fixed;">
+                        <colgroup>
+                           <col style="width: 118px;">
+                           <col style="width: 118px;">
+                           <col style="width: 118px;">
+                           <col style="width: 118px;">
+                           <col style="width: 10px;">
+                        </colgroup>
+                        <thead class="ant-table-thead">
+                           <tr>
+                              <th class="ant-table-cell ant-table-cell-ellipsis" title=""></th>
+                              <th class="ant-table-cell ant-table-cell-ellipsis" title="Số lượng" scope="col" style="text-align: right;">Số lượng</th>
+                              <th class="ant-table-cell ant-table-cell-ellipsis" title="Số lượng" scope="col" style="text-align: right;">Số lượng</th>
+                              <th class="ant-table-cell" scope="col" style="text-align: right;">Thao tác</th>
+                              <th class="ant-table-cell ant-table-cell-scrollbar"></th>
+                           </tr>
+                        </thead>
+                     </table>
+                  </div>
+                  <div class="ant-table-body" style="overflow: auto scroll; max-height: 100%;">
+                     <table style="width: 100%; min-width: 100%; table-layout: fixed;">
+                        <colgroup></colgroup>
+                        <tbody class="ant-table-tbody">
+                           <tr aria-hidden="true" class="ant-table-measure-row" style="height: 0px; font-size: 0px;">
+                              <td style="padding: 0px; border: 0px; height: 0px;">
+                                 <div style="height: 0px; overflow: hidden;">&nbsp;</div>
+                              </td>
+                              <td style="padding: 0px; border: 0px; height: 0px;">
+                                 <div style="height: 0px; overflow: hidden;">&nbsp;</div>
+                              </td>
+                              <td style="padding: 0px; border: 0px; height: 0px;">
+                                 <div style="height: 0px; overflow: hidden;">&nbsp;</div>
+                              </td>
+                              <td style="padding: 0px; border: 0px; height: 0px;">
+                                 <div style="height: 0px; overflow: hidden;">&nbsp;</div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596445016067416064">
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_buyBtnWrapper__H5EaZ">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_buyPrice__uY0OB order-book-table_shrinkSize__YlP61">0.1030</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">1,100</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">113.3000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell" style="text-align: right;">
+                                 <div class="order-book-table_buyBtnWrapper__H5EaZ"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Bán</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596444171229736960">
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_buyBtnWrapper__H5EaZ">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_buyPrice__uY0OB order-book-table_shrinkSize__YlP61">0.1020</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">2,000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">204.0000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell" style="text-align: right;">
+                                 <div class="order-book-table_buyBtnWrapper__H5EaZ"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Bán</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596444153999536128">
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_buyBtnWrapper__H5EaZ">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_buyPrice__uY0OB order-book-table_shrinkSize__YlP61">0.1020</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">3,000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">306.0000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell" style="text-align: right;">
+                                 <div class="order-book-table_buyBtnWrapper__H5EaZ"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Bán</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596424113887653888">
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_buyBtnWrapper__H5EaZ">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_buyPrice__uY0OB order-book-table_shrinkSize__YlP61">0.1019</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">1,400</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">142.6600</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell" style="text-align: right;">
+                                 <div class="order-book-table_buyBtnWrapper__H5EaZ"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Bán</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596424037844922368">
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_buyBtnWrapper__H5EaZ">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_buyPrice__uY0OB order-book-table_shrinkSize__YlP61">0.1018</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">1,500</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">152.7000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell" style="text-align: right;">
+                                 <div class="order-book-table_buyBtnWrapper__H5EaZ"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Bán</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596423989190995968">
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_buyBtnWrapper__H5EaZ">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_buyPrice__uY0OB order-book-table_shrinkSize__YlP61">0.1017</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">1,000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">101.7000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell" style="text-align: right;">
+                                 <div class="order-book-table_buyBtnWrapper__H5EaZ"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Bán</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596423803173609472">
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_buyBtnWrapper__H5EaZ">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_buyPrice__uY0OB order-book-table_shrinkSize__YlP61">0.1016</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">1,000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">101.6000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell" style="text-align: right;">
+                                 <div class="order-book-table_buyBtnWrapper__H5EaZ"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Bán</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596318960459194368">
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_buyBtnWrapper__H5EaZ">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_buyPrice__uY0OB order-book-table_shrinkSize__YlP61">0.1015</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">800</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">81.2000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell" style="text-align: right;">
+                                 <div class="order-book-table_buyBtnWrapper__H5EaZ"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Bán</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596290970698395648">
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_buyBtnWrapper__H5EaZ">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_buyPrice__uY0OB order-book-table_shrinkSize__YlP61">0.1010</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">101</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">10.2010</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell" style="text-align: right;">
+                                 <div class="order-book-table_buyBtnWrapper__H5EaZ"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Bán</span></button></div>
+                              </td>
+                           </tr>
+                           <tr class="ant-table-row ant-table-row-level-0" data-row-key="P01__596364076943155200">
+                              <td class="ant-table-cell ant-table-cell-ellipsis">
+                                 <div class="order-book-table_priceContent__NGers order-book-table_buyBtnWrapper__H5EaZ">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_buyPrice__uY0OB order-book-table_shrinkSize__YlP61">0.1000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">100</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell ant-table-cell-ellipsis" style="text-align: right;">
+                                 <div class="order-book-table_itemCenter__gUPZp">
+                                    <div class="order-book-table_ltr__G9P_6 order-book-table_content__ZSAZ_ order-book-table_shrinkSize__YlP61">10.0000</div>
+                                 </div>
+                              </td>
+                              <td class="ant-table-cell" style="text-align: right;">
+                                 <div class="order-book-table_buyBtnWrapper__H5EaZ"><button type="button" class="ant-btn ant-btn-primary ant-btn-sm order-book-table_doBtn__R6taG"><span>Bán</span></button></div>
+                              </td>
+                           </tr>
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+   <div class="order-book-table_paginationWrapper__O_FJg">
+      <ul class="ant-pagination ant-pagination-mini ant-pagination-ltr" unselectable="unselectable">
+         <li title="Previous Page" class="ant-pagination-prev ant-pagination-disabled" aria-disabled="true">
+            <button class="ant-pagination-item-link" type="button" tabindex="-1" disabled="">
+               <span role="img" aria-label="left" class="anticon anticon-left">
+                  <svg viewBox="64 64 896 896" focusable="false" data-icon="left" width="1em" height="1em" fill="currentColor" aria-hidden="true">
+                     <path d="M724 218.3V141c0-6.7-7.7-10.4-12.9-6.3L260.3 486.8a31.86 31.86 0 000 50.3l450.8 352.1c5.3 4.1 12.9.4 12.9-6.3v-77.3c0-4.9-2.3-9.6-6.1-12.6l-360-281 360-281.1c3.8-3 6.1-7.7 6.1-12.6z"></path>
+                  </svg>
+               </span>
+            </button>
+         </li>
+         <li title="1" class="ant-pagination-item ant-pagination-item-1 ant-pagination-item-active" tabindex="0"><a rel="nofollow">1</a></li>
+         <li title="2" class="ant-pagination-item ant-pagination-item-2" tabindex="0"><a rel="nofollow">2</a></li>
+         <li title="3" class="ant-pagination-item ant-pagination-item-3" tabindex="0"><a rel="nofollow">3</a></li>
+         <li title="4" class="ant-pagination-item ant-pagination-item-4" tabindex="0"><a rel="nofollow">4</a></li>
+         <li title="5" class="ant-pagination-item ant-pagination-item-5 ant-pagination-item-before-jump-next" tabindex="0"><a rel="nofollow">5</a></li>
+         <li title="Next 5 Pages" tabindex="0" class="ant-pagination-jump-next ant-pagination-jump-next-custom-icon">
+            <a class="ant-pagination-item-link">
+               <div class="ant-pagination-item-container">
+                  <span role="img" aria-label="double-right" class="anticon anticon-double-right ant-pagination-item-link-icon">
+                     <svg viewBox="64 64 896 896" focusable="false" data-icon="double-right" width="1em" height="1em" fill="currentColor" aria-hidden="true">
+                        <path d="M533.2 492.3L277.9 166.1c-3-3.9-7.7-6.1-12.6-6.1H188c-6.7 0-10.4 7.7-6.3 12.9L447.1 512 181.7 851.1A7.98 7.98 0 00188 864h77.3c4.9 0 9.6-2.3 12.6-6.1l255.3-326.1c9.1-11.7 9.1-27.9 0-39.5zm304 0L581.9 166.1c-3-3.9-7.7-6.1-12.6-6.1H492c-6.7 0-10.4 7.7-6.3 12.9L751.1 512 485.7 851.1A7.98 7.98 0 00492 864h77.3c4.9 0 9.6-2.3 12.6-6.1l255.3-326.1c9.1-11.7 9.1-27.9 0-39.5z"></path>
+                     </svg>
+                  </span>
+                  <span class="ant-pagination-item-ellipsis">•••</span>
+               </div>
+            </a>
+         </li>
+         <li title="16" class="ant-pagination-item ant-pagination-item-16" tabindex="0"><a rel="nofollow">16</a></li>
+         <li title="Next Page" tabindex="0" class="ant-pagination-next" aria-disabled="false">
+            <button class="ant-pagination-item-link" type="button" tabindex="-1">
+               <span role="img" aria-label="right" class="anticon anticon-right">
+                  <svg viewBox="64 64 896 896" focusable="false" data-icon="right" width="1em" height="1em" fill="currentColor" aria-hidden="true">
+                     <path d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.96 31.96 0 000-50.4z"></path>
+                  </svg>
+               </span>
+            </button>
+         </li>
+      </ul>
+   </div>
+</div>
 
 --- html khi click sang trang 2
 <tbody class="ant-table-tbody">
