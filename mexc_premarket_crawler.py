@@ -19,11 +19,159 @@ import time
 import re
 from datetime import datetime
 import json
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from config import DATABASE_CONFIG
 
 
-class MexcMentoCrawler:
-    def __init__(self):
+class MexcPreMarketCrawler:
+    def __init__(self, db_config=None):
         self.session = requests.Session()
+        self.db_config = db_config or {
+            'host': 'localhost',
+            'database': 'crawl_mexc',
+            'user': 'postgres',
+            'password': 'password',
+            'port': '5432'
+        }
+        self.conn = None
+    
+    def connect_database(self):
+        """Kết nối đến PostgreSQL database"""
+        try:
+            self.conn = psycopg2.connect(**self.db_config)
+            print(f"✅ Connected to PostgreSQL database: {self.db_config['database']}")
+            return True
+        except psycopg2.Error as e:
+            print(f"❌ Error connecting to database: {e}")
+            return False
+    
+    def close_database(self):
+        """Đóng kết nối database"""
+        if self.conn:
+            self.conn.close()
+            print("✅ Database connection closed")
+    
+    def create_tables(self):
+        """Tạo tables nếu chưa tồn tại"""
+        if not self.conn:
+            print("❌ No database connection")
+            return False
+        
+        try:
+            cursor = self.conn.cursor()
+            
+            # Tạo table tokens
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS tokens (
+                    id SERIAL PRIMARY KEY,
+                    symbol VARCHAR(20),
+                    name VARCHAR(100),
+                    latest_price DECIMAL(18,8),
+                    price_change_percent DECIMAL(8,2),
+                    volume_24h DECIMAL(18,2),
+                    total_volume DECIMAL(18,2),
+                    start_time TIMESTAMP,
+                    end_time TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """)
+            
+            # Tạo table order_books
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS order_books (
+                    id SERIAL PRIMARY KEY,
+                    token_id INT REFERENCES tokens(id) ON DELETE CASCADE,
+                    order_type VARCHAR(10),
+                    price DECIMAL(18,8),
+                    quantity DECIMAL(18,8),
+                    total DECIMAL(18,8),
+                    crawled_at TIMESTAMP DEFAULT NOW()
+                )
+            """)
+            
+            self.conn.commit()
+            cursor.close()
+            print("✅ Database tables created/verified successfully")
+            return True
+            
+        except psycopg2.Error as e:
+            print(f"❌ Error creating tables: {e}")
+            self.conn.rollback()
+            return False
+    
+    def insert_token(self, token_data):
+        """Thêm token vào database"""
+        if not self.conn:
+            return None
+        
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                INSERT INTO tokens (symbol, name, latest_price, price_change_percent, 
+                                  volume_24h, total_volume, start_time, end_time, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (
+                token_data['symbol'],
+                token_data['name'],
+                token_data['latest_price'],
+                token_data['price_change_percent'],
+                token_data['volume_24h'],
+                token_data['total_volume'],
+                token_data['start_time'],
+                token_data['end_time'],
+                token_data['created_at']
+            ))
+            
+            token_id = cursor.fetchone()[0]
+            self.conn.commit()
+            cursor.close()
+            print(f"✅ Token {token_data['symbol']} inserted with ID: {token_id}")
+            return token_id
+            
+        except psycopg2.Error as e:
+            print(f"❌ Error inserting token: {e}")
+            self.conn.rollback()
+            return None
+    
+    def insert_order_books(self, token_id, order_books):
+        """Thêm order books vào database"""
+        if not self.conn or not order_books:
+            return False
+        
+        try:
+            cursor = self.conn.cursor()
+            
+            # Prepare data for batch insert
+            order_data = []
+            for order in order_books:
+                order_data.append((
+                    token_id,
+                    order['order_type'],
+                    order['price'],
+                    order['quantity'],
+                    order['total']
+                ))
+            
+            # Batch insert
+            cursor.executemany("""
+                INSERT INTO order_books (token_id, order_type, price, quantity, total)
+                VALUES (%s, %s, %s, %s, %s)
+            """, order_data)
+            
+            self.conn.commit()
+            cursor.close()
+            print(f"✅ Inserted {len(order_books)} order book entries")
+            return True
+            
+        except psycopg2.Error as e:
+            print(f"❌ Error inserting order books: {e}")
+            self.conn.rollback()
+            return False
+    
+    def setup_session(self):
+        """Setup session headers"""
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
@@ -33,32 +181,65 @@ class MexcMentoCrawler:
         self.tokens_data = []
         self.orderbook_data = []
         
-    def crawl_mento_data(self):
-        """Crawl MENTO token data and order book"""
-        print("🚀 MEXC MENTO Token Crawler")
+    def crawl_premarket_data(self):
+        """Crawl all pre-market token data and order books"""
+        print("🚀 MEXC Pre-Market Token Crawler")
         print("=" * 70)
-        print("📊 Target: MENTO token only")
-        print("📊 Phase 1: Getting MENTO token data from pre-market")
-        print("📊 Phase 2: Crawling order book for MENTO")
+        print("📊 Target: All pre-market tokens")
+        print("📊 Phase 1: Getting all token data from pre-market")
+        print("📊 Phase 2: Crawling order books for each token")
+        print("📊 Phase 3: Saving to PostgreSQL database")
         print("=" * 70)
         
-        # Phase 1: Get MENTO token data from pre-market page
-        self.crawl_mento_token_data()
+        # Connect to database
+        if not self.connect_database():
+            print("❌ Failed to connect to database. Exiting...")
+            return None, None
         
-        # Phase 2: Crawl order book for MENTO
-        if self.tokens_data:
-            print(f"\n🔄 Phase 2: Crawling order book for MENTO...")
-            self.crawl_mento_orderbook()
+        # Create tables if not exist
+        if not self.create_tables():
+            print("❌ Failed to create tables. Exiting...")
+            self.close_database()
+            return None, None
         
-        print(f"\n🎯 MENTO CRAWLING COMPLETED!")
-        print(f"   • Tokens extracted: {len(self.tokens_data)}")
-        print(f"   • Order book entries: {len(self.orderbook_data)}")
-        
-        return self.tokens_data, self.orderbook_data
+        try:
+            # Phase 1: Get all token data from pre-market page
+            self.crawl_all_tokens_data()
+            
+            # Phase 2: Crawl order books for each token
+            if self.tokens_data:
+                print(f"\n🔄 Phase 2: Crawling order books for {len(self.tokens_data)} tokens...")
+                self.crawl_all_orderbooks()
+            
+            # Phase 3: Save to database
+            if self.tokens_data:
+                print(f"\n💾 Phase 3: Saving to PostgreSQL database...")
+                
+                total_order_entries = 0
+                # Insert token data and their order books
+                for token in self.tokens_data:
+                    token_id = self.insert_token(token)
+                    if token_id and token['symbol'] in self.orderbook_data:
+                        # Insert order book data for this specific token
+                        token_orders = self.orderbook_data[token['symbol']]
+                        self.insert_order_books(token_id, token_orders)
+                        total_order_entries += len(token_orders)
+                
+                print(f"✅ Data saved to database successfully!")
+            
+            print(f"\n🎯 PRE-MARKET CRAWLING COMPLETED!")
+            print(f"   • Tokens extracted: {len(self.tokens_data)}")
+            print(f"   • Total order book entries: {total_order_entries}")
+            
+            return self.tokens_data, self.orderbook_data
+            
+        finally:
+            # Always close database connection
+            self.close_database()
     
-    def crawl_mento_token_data(self):
-        """Crawl MENTO token data from pre-market page"""
-        print(f"\n📋 Phase 1: Getting MENTO token data from pre-market...")
+    def crawl_all_tokens_data(self):
+        """Crawl all token data from pre-market page"""
+        print(f"\n📋 Phase 1: Getting all token data from pre-market...")
         
         # Set up Chrome driver
         chrome_options = Options()
@@ -94,115 +275,75 @@ class MexcMentoCrawler:
                 token_list = driver.find_element(By.CSS_SELECTOR, "ul.ant-list-items")
                 
                 if token_list:
-                    print("✅ Found token list, searching for MENTO...")
+                    print("✅ Found token list, processing all tokens...")
                     token_items = token_list.find_elements(By.TAG_NAME, "li")
                     
-                    print(f"📊 Found {len(token_items)} token items, searching for MENTO")
+                    print(f"📊 Found {len(token_items)} token items")
                     
-                    mento_found = False
                     for i, item in enumerate(token_items):
                         try:
-                            # Check if this item contains MENTO
-                            item_text = item.text
-                            if 'MENTO' in item_text.upper():
-                                print(f"🔄 Found MENTO token at position {i+1}")
-                                
-                                # Extract token data
-                                token_data = self.extract_token_data(item)
-                                if token_data:
-                                    self.tokens_data.append(token_data)
-                                    symbol = token_data.get('symbol', '')
-                                    print(f"✅ MENTO token data extracted: {symbol}")
-                                    print(f"   • Latest Price: {token_data.get('latest_price', 'N/A')}")
-                                    print(f"   • Price Change: {token_data.get('price_change_percent', 'N/A')}")
-                                    print(f"   • Volume 24h: {token_data.get('volume_24h', 'N/A')}")
-                                    print(f"   • Total Volume: {token_data.get('total_volume', 'N/A')}")
-                                    print(f"   • Start Time: {token_data.get('start_time', 'N/A')}")
-                                    print(f"   • End Time: {token_data.get('end_time', 'N/A')}")
-                                    mento_found = True
-                                    break
+                            # Extract token data for all tokens
+                            token_data = self.extract_token_data(item)
+                            if token_data:
+                                self.tokens_data.append(token_data)
+                                symbol = token_data.get('symbol', '')
+                                print(f"✅ Token {i+1}: {symbol} extracted")
                             
                         except Exception as e:
                             print(f"❌ Error processing token {i+1}: {e}")
                             continue
                     
-                    if not mento_found:
-                        print(f"⚠️  MENTO token not found in pre-market list")
-                        # Create minimal token data as fallback
-                        self.tokens_data = [{
-                            'name': 'MENTO',
-                            'symbol': 'MENTO',
-                            'latest_price': '',
-                            'price_change_percent': '',
-                            'volume_24h': '',
-                            'total_volume': '',
-                            'start_time': '',
-                            'end_time': '',
-                            'crawled_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                        }]
-                        print(f"📝 Created minimal token data for MENTO")
+                    print(f"✅ Successfully extracted {len(self.tokens_data)} tokens")
                 
             except TimeoutException:
-                print("⚠️ Timeout waiting for token list. Creating minimal token data...")
-                # Create minimal token data as fallback
-                self.tokens_data = [{
-                    'name': 'MENTO',
-                    'symbol': 'MENTO',
-                    'latest_price': '',
-                    'price_change_percent': '',
-                    'volume_24h': '',
-                    'total_volume': '',
-                    'start_time': '',
-                    'end_time': '',
-                    'crawled_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                }]
-                print(f"📝 Created minimal token data for MENTO")
+                print("⚠️ Timeout waiting for token list. No tokens extracted.")
                 
         except Exception as e:
             print(f"❌ Error in token data crawling: {e}")
-            # Create minimal token data as fallback
-            self.tokens_data = [{
-                'name': 'MENTO',
-                'symbol': 'MENTO',
-                'latest_price': '',
-                'price_change_percent': '',
-                'volume_24h': '',
-                'total_volume': '',
-                'start_time': '',
-                'end_time': '',
-                'crawled_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            }]
-            print(f"📝 Created minimal token data for MENTO")
             
         finally:
             if driver:
                 driver.quit()
     
-    def crawl_mento_orderbook(self):
-        """Crawl order book data for MENTO token"""
-        print(f"\n📈 Phase 2: Crawling order book for MENTO...")
+    def crawl_all_orderbooks(self):
+        """Crawl order books for all tokens"""
+        print(f"\n📈 Phase 2: Crawling order books for all tokens...")
+        
+        # Initialize orderbook_data as dictionary to store orders by token symbol
+        self.orderbook_data = {}
         
         for token in self.tokens_data:
             symbol = token.get('symbol', '')
-            if symbol and symbol.upper() == 'MENTO':
-                print(f"\n🔄 Processing MENTO order book...")
-                
-                try:
-                    # Use correct URL pattern for MENTO
-                    orderbook_entries = self.crawl_orderbook_for_mento(symbol)
-                    self.orderbook_data.extend(orderbook_entries)
-                    
-                    if orderbook_entries:
-                        print(f"✅ Order book: {len(orderbook_entries)} entries for MENTO")
-                    else:
-                        print(f"⚠️  No order book data found for MENTO")
-                    
-                except Exception as e:
-                    print(f"❌ Error crawling order book for MENTO: {e}")
-                    continue
+            if symbol:
+                print(f"\n🔄 Processing order book for {symbol}...")
+                token_orders = self.crawl_token_orderbook(symbol)
+                if token_orders:
+                    self.orderbook_data[symbol] = token_orders
+                    print(f"✅ {symbol}: {len(token_orders)} order entries")
+                else:
+                    print(f"⚠️ No order book data found for {symbol}")
     
-    def crawl_orderbook_for_mento(self, symbol):
-        """Crawl order book data for MENTO token"""
+    def crawl_token_orderbook(self, symbol):
+        """Crawl order book for a specific token"""
+        print(f"🔄 Processing order book for {symbol}...")
+        
+        try:
+            # Use correct URL pattern for the token
+            orderbook_entries = self.crawl_orderbook_for_token(symbol)
+            
+            if orderbook_entries:
+                print(f"✅ {symbol}: {len(orderbook_entries)} order entries")
+            else:
+                print(f"⚠️  No order book data found for {symbol}")
+            
+            return orderbook_entries
+            
+        except Exception as e:
+            print(f"❌ Error crawling order book for {symbol}: {e}")
+            return []
+    
+    def crawl_orderbook_for_token(self, symbol):
+        """Crawl order book data for a specific token"""
         orderbook_entries = []
         
         # Set up Chrome driver for order book page
@@ -230,10 +371,10 @@ class MexcMentoCrawler:
             
             # Check if page loaded successfully
             if "404" not in driver.title and "error" not in driver.title.lower():
-                print(f"  ✅ Successfully loaded order book page for MENTO")
+                print(f"  ✅ Successfully loaded order book page for {symbol}")
                 
-                # Extract order book data - focus on orders with "Mua" button
-                orderbook_entries = self.extract_mento_orderbook(driver, symbol)
+                # Extract order book data for this token
+                orderbook_entries = self.extract_orderbook(driver, symbol)
                 
                 if orderbook_entries:
                     print(f"  📊 Found {len(orderbook_entries)} order book entries")
@@ -251,13 +392,13 @@ class MexcMentoCrawler:
         
         return orderbook_entries
     
-    def extract_mento_orderbook(self, driver, symbol):
-        """Extract order book data for MENTO - crawl both Mua and Bán orders"""
+    def extract_orderbook(self, driver, symbol):
+        """Extract order book data for any token - crawl both Mua and Bán orders"""
         orderbook_entries = []
         crawled_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         try:
-            print(f"    🔍 Extracting MENTO order book data...")
+            print(f"    🔍 Extracting {symbol} order book data...")
             
             # Phase 1: Crawl SELL orders (lệnh bán) - table with "Mua" buttons
             print(f"    🔍 Phase 1: Crawling SELL orders (lệnh bán) with 'Mua' buttons...")
@@ -280,7 +421,7 @@ class MexcMentoCrawler:
             print(f"    ✅ Total extracted: {len(orderbook_entries)} entries ({len(sell_entries)} SELL + {len(buy_entries)} BUY)")
             
         except Exception as e:
-            print(f"    ❌ Error extracting MENTO order book: {str(e)}")
+            print(f"    ❌ Error extracting {symbol} order book: {str(e)}")
         
         return orderbook_entries
     
@@ -308,7 +449,7 @@ class MexcMentoCrawler:
                             continue
                         
                         # Extract order data from row
-                        order_data = self.parse_mento_order_row(row, symbol, crawled_at, price_selector, expected_button)
+                        order_data = self.parse_order_row(row, symbol, price_selector, expected_button)
                         if order_data:
                             orderbook_entries.append(order_data)
                             valid_entries += 1
@@ -340,8 +481,8 @@ class MexcMentoCrawler:
         
         return orderbook_entries
 
-    def parse_mento_order_row(self, row_element, symbol, crawled_at, price_selector=None, expected_button=None):
-        """Parse order book row for MENTO - order type comes from button content"""
+    def parse_order_row(self, row_element, symbol, price_selector=None, expected_button=None):
+        """Parse order book row for any token - order type comes from button content"""
         try:
             # Skip measurement rows
             if self.is_measurement_row(row_element):
@@ -410,14 +551,24 @@ class MexcMentoCrawler:
             if not price and not quantity:
                 return None
             
+            # Convert numeric values and remove commas
+            def clean_numeric(value):
+                if not value:
+                    return None
+                # Remove commas and convert to float
+                clean_value = str(value).replace(',', '').strip()
+                try:
+                    return float(clean_value)
+                except (ValueError, TypeError):
+                    return None
+            
             # Create order entry
             order_entry = {
                 'token_symbol': symbol,
-                'crawled_at': crawled_at,
                 'order_type': order_type or 'Unknown',
-                'price': price or '',
-                'quantity': quantity or '',
-                'total': total or ''
+                'price': clean_numeric(price),
+                'quantity': clean_numeric(quantity),
+                'total': clean_numeric(total)
             }
             
             return order_entry
@@ -613,7 +764,7 @@ class MexcMentoCrawler:
                                 
                                 for row in rows:
                                     if not self.is_measurement_row(row):
-                                        order_data = self.parse_mento_order_row(row, symbol, page_crawled_at, price_selector, expected_button)
+                                        order_data = self.parse_order_row(row, symbol, price_selector, expected_button)
                                         if order_data:
                                             page_entries.append(order_data)
                                 
@@ -690,55 +841,102 @@ class MexcMentoCrawler:
             if not item_text.strip():
                 return None
             
+            # Extract token name and symbol from element
+            name = ''
+            symbol = ''
+            
+            # Parse the text to extract symbol and name
+            lines = item_text.strip().split('\n')
+            if len(lines) >= 2:
+                # First line is usually the symbol
+                symbol = lines[0].strip()
+                # Second line is usually the name
+                name = lines[1].strip()
+                
+                # Clean up symbol (remove any extra characters)
+                symbol = re.sub(r'[^A-Za-z0-9]', '', symbol)
+                
+                # Clean up name (remove any extra characters)
+                name = re.sub(r'\s+', ' ', name).strip()
+            
             token_data = {
-                'name': 'MENTO',
-                'symbol': 'MENTO',
+                'name': name,
+                'symbol': symbol,
                 'latest_price': '',
                 'price_change_percent': '',
                 'volume_24h': '',
                 'total_volume': '',
                 'start_time': '',
                 'end_time': '',
-                'crawled_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             
             # Extract latest price
             price_pattern = r'Giá giao dịch mới nhất\s*([\d,]+\.?\d*)'
             price_match = re.search(price_pattern, item_text)
             if price_match:
-                token_data['latest_price'] = price_match.group(1)
+                # Remove commas and convert to float
+                price_str = price_match.group(1).replace(',', '')
+                token_data['latest_price'] = float(price_str)
             
-            # Extract percentage change
-            change_pattern = r'([+-]?\d+\.?\d*%)'
+            # Extract percentage change (remove % sign for numeric field)
+            change_pattern = r'([+-]?\d+\.?\d*)%'
             change_match = re.search(change_pattern, item_text)
             if change_match:
-                token_data['price_change_percent'] = change_match.group(1)
+                token_data['price_change_percent'] = float(change_match.group(1))
             
             # Extract volume 24h
             volume_24h_pattern = r'Khối lượng 24 giờ\s*([\d,]+\.?\d*[KMB]?)'
             volume_24h_match = re.search(volume_24h_pattern, item_text)
             if volume_24h_match:
-                token_data['volume_24h'] = volume_24h_match.group(1)
+                volume_str = volume_24h_match.group(1).replace(',', '')
+                # Convert K/M/B suffixes to numeric values
+                if volume_str.endswith('K'):
+                    token_data['volume_24h'] = float(volume_str[:-1]) * 1000
+                elif volume_str.endswith('M'):
+                    token_data['volume_24h'] = float(volume_str[:-1]) * 1000000
+                elif volume_str.endswith('B'):
+                    token_data['volume_24h'] = float(volume_str[:-1]) * 1000000000
+                else:
+                    token_data['volume_24h'] = float(volume_str)
             
             # Extract total volume
             total_volume_pattern = r'Tổng khối lượng\s*([\d,]+\.?\d*[KMB]?)'
             total_volume_match = re.search(total_volume_pattern, item_text)
             if total_volume_match:
-                token_data['total_volume'] = total_volume_match.group(1)
+                volume_str = total_volume_match.group(1).replace(',', '')
+                # Convert K/M/B suffixes to numeric values
+                if volume_str.endswith('K'):
+                    token_data['total_volume'] = float(volume_str[:-1]) * 1000
+                elif volume_str.endswith('M'):
+                    token_data['total_volume'] = float(volume_str[:-1]) * 1000000
+                elif volume_str.endswith('B'):
+                    token_data['total_volume'] = float(volume_str[:-1]) * 1000000000
+                else:
+                    token_data['total_volume'] = float(volume_str)
             
-            # Extract start time
+            # Extract start time (first timestamp)
             time_pattern = r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})'
-            time_match = re.search(time_pattern, item_text)
-            if time_match:
-                token_data['start_time'] = time_match.group(1)
+            time_matches = re.findall(time_pattern, item_text)
+            if time_matches:
+                token_data['start_time'] = time_matches[0]
             
-            # Extract status
-            end_time_patterns = [r'Đợi xác nhận', r'Đã kết thúc', r'Đang diễn ra']
-            for pattern in end_time_patterns:
-                end_match = re.search(pattern, item_text)
-                if end_match:
-                    token_data['end_time'] = pattern
-                    break
+            # Extract end time - look for second timestamp or status
+            if len(time_matches) >= 2:
+                # If there are 2 timestamps, use the second one as end_time
+                token_data['end_time'] = time_matches[1]
+            else:
+                # Check for status patterns
+                end_time_patterns = [r'Đợi xác nhận', r'Đã kết thúc', r'Đang diễn ra']
+                for pattern in end_time_patterns:
+                    end_match = re.search(pattern, item_text)
+                    if end_match:
+                        # Set to None for database (NULL value) for status text
+                        token_data['end_time'] = None
+                        break
+                else:
+                    # If no status found, set to None
+                    token_data['end_time'] = None
             
             return token_data
             
@@ -801,44 +999,35 @@ class MexcMentoCrawler:
 
 
 def main():
-    """Main function to crawl MENTO token"""
-    print("🚀 MEXC MENTO Token Crawler")
-    print("Focus on orders with Mua button, order type = button content")
+    """Main function to crawl all pre-market tokens"""
+    print("🚀 MEXC Pre-Market Token Crawler")
+    print("Crawling all pre-market tokens and their order books")
     print("=" * 60)
     
-    crawler = MexcMentoCrawler()
+    # Initialize crawler with database config from config.py
+    crawler = MexcPreMarketCrawler(DATABASE_CONFIG)
+    crawler.setup_session()
     
-    # Run the MENTO crawler
-    tokens_data, orderbook_data = crawler.crawl_mento_data()
+    # Run the pre-market crawler
+    tokens_data, orderbook_data = crawler.crawl_premarket_data()
     
     if tokens_data:
-        # Save all data to file
-        crawler.save_to_file()
+        print("\n🎉 PRE-MARKET CRAWLING COMPLETED!")
         
-        print("\n🎉 MENTO CRAWLING COMPLETED!")
+        # Calculate total order book entries
+        total_orders = 0
+        if orderbook_data:
+            total_orders = sum(len(orders) for orders in orderbook_data.values())
         
         # Display summary
-        print("\n📊 SUMMARY:")
-        print(f"   • Tokens extracted: {len(tokens_data)}")
-        print(f"   • Order book entries: {len(orderbook_data)}")
+        print(f"\n📊 SUMMARY:")
+        print(f"   • Tokens: {len(tokens_data)}")
+        print(f"   • Order book entries: {total_orders}")
         
-        # Display token data
-        print("\n🔍 MENTO TOKEN DATA:")
-        for token in tokens_data:
-            print(f"   • {token.get('symbol', 'N/A')}: {token.get('latest_price', 'N/A')} ({token.get('price_change_percent', 'N/A')})")
-        
-        # Display sample order book data
-        if orderbook_data:
-            print("\n📈 SAMPLE MENTO ORDER BOOK DATA:")
-            for i, order in enumerate(orderbook_data[:10]):  # Show first 10 entries
-                print(f"   {i+1}. {order.get('token_symbol', 'N/A')} {order.get('order_type', 'N/A')}: {order.get('price', 'N/A')} x {order.get('quantity', 'N/A')} (Total: {order.get('total', 'N/A')})")
-        else:
-            print("\n⚠️  No order book data was extracted")
-        
-        print(f"\n📁 MENTO data saved to: mexc_mento_data_YYYYMMDD_HHMMSS.txt")
+        print(f"\n💾 Data saved to PostgreSQL database: crawl_mexc")
         
     else:
-        print("❌ No MENTO data was extracted. Please check your setup and try again.")
+        print("❌ No token data was extracted. Please check your setup and try again.")
 
 
 if __name__ == "__main__":
