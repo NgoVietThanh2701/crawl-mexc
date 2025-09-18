@@ -1,112 +1,86 @@
-# MEXC Pre-Market Token & Order Book Crawler
+# MEXC Pre-Market Crawler
 
-Crawler để lấy thông tin token pre-market và order book từ sàn MEXC, lưu trữ dữ liệu vào PostgreSQL database.
+## 🚀 Cách sử dụng
 
-## 📁 Cấu trúc dự án
+### Chạy 1 lần
 
-```
-D:\Crawl_MEXC\
-├── mexc_premarket_crawler.py           # Crawler chính cho tất cả pre-market tokens
-├── config.py                           # Database configuration
-├── mexc_crawler/                       # Scrapy project (legacy)
-│   ├── items.py                        # Data models
-│   ├── pipelines.py                    # Data processing
-│   ├── settings.py                     # Scrapy settings
-│   └── spiders/                        # Scrapy spiders
-│       ├── mexc_spider.py             # Basic spider
-│       ├── mexc_selenium_spider.py    # Selenium spider
-│       └── mexc_orderbook_spider.py   # Order book spider
-├── scrapy.cfg                          # Scrapy config
-├── html_extract.txt                    # HTML mẫu (reference)
-├── README.md                           # File này
-└── mexc_premarket_data_*.txt           # File kết quả (backup)
-```
-
-## 🚀 Hướng dẫn chạy
-
-### 1. Cài đặt Python dependencies:
-
-```bash
-pip install requests beautifulsoup4 selenium psycopg2-binary
-```
-
-### 2. Cài đặt PostgreSQL:
-
-- Tải và cài đặt PostgreSQL từ [postgresql.org](https://www.postgresql.org/download/)
-- Tạo database `crawl_mexc`
-- Cấu hình thông tin database trong `config.py`:
-
-```python
-DATABASE_CONFIG = {
-    'host': 'localhost',
-    'database': 'crawl_mexc',
-    'user': 'postgres',
-    'password': 'your_password',
-    'port': '5432'
-}
-```
-
-### 4. Chạy crawler:
-
-```bash
+```cmd
 python mexc_premarket_crawler.py
 ```
 
-## 📊 Kết quả
+## 📁 Files
 
-Dữ liệu được lưu trữ trong PostgreSQL database `crawl_mexc` với 2 bảng:
+- `mexc_premarket_crawler.py` - **Crawler chính**
+- `cron_wrapper.bat` - **Wrapper cho cron job với logging**
+- `config.py` - Database configuration
+- `logs/` - **Thư mục logs** (tự động tạo)
+  - `cron_YYYY-MM-DD.log` - Log file cron job theo ngày với thời gian bắt đầu/kết thúc
 
-### Bảng `tokens`:
+## ⚙️ Hướng dẫn cài đặt
 
-- **symbol**: Mã token (ví dụ: MENTO)
-- **name**: Tên token
-- **latest_price**: Giá giao dịch mới nhất
-- **price_change_percent**: Phần trăm thay đổi giá
-- **volume_24h**: Khối lượng giao dịch 24h
-- **total_volume**: Tổng khối lượng
-- **start_time**: Thời gian bắt đầu
-- **end_time**: Thời gian kết thúc (NULL nếu "Đợi xác nhận")
-- **created_at**: Thời gian tạo record
+### 1. Cài đặt Python dependencies
 
-### Bảng `order_books`:
+```cmd
+pip install selenium
+pip install psycopg2-binary
+pip install requests
+pip install beautifulsoup4
+pip install webdriver-manager
+```
 
-- **token_id**: ID tham chiếu đến bảng tokens
-- **order_type**: Loại lệnh (Mua/Bán)
-- **price**: Giá
-- **quantity**: Số lượng
-- **total**: Tổng tiền
-- **crawled_at**: Thời gian crawl record
+### 2. Cài đặt ChromeDriver
 
-### File backup:
+ChromeDriver sẽ được tự động tải xuống khi chạy lần đầu.
 
-File `mexc_premarket_data_YYYYMMDD_HHMMSS.txt` sẽ được tạo làm backup chứa toàn bộ dữ liệu đã crawl.
+### 3. Cấu hình Database
 
-## 🎯 Tính năng chính
+Chỉnh sửa file `config.py`:
 
-- ✅ Crawl tất cả tokens từ pre-market page
-- ✅ Crawl toàn bộ order book với phân trang (SELL & BUY orders) cho từng token
-- ✅ Lưu trữ dữ liệu vào PostgreSQL database
-- ✅ Xử lý đúng order type từ button content (Mua/Bán)
-- ✅ Tự động tạo timestamp cho mỗi record
-- ✅ Xử lý numeric data (price, quantity, volume) đúng định dạng
-- ✅ Xử lý end_time đúng: NULL cho "Đợi xác nhận", timestamp cho thời gian thực
+```python
+# Database configuration
+DB_CONFIG = {
+    'host': 'localhost',
+    'database': 'mexc_data',
+    'user': 'your_username',
+    'password': 'your_password',
+    'port': 5432
+}
+```
 
-## 🚨 Troubleshooting
+### 4. Tạo database
 
-**Lỗi database connection**: Kiểm tra config.py và đảm bảo PostgreSQL đang chạy
+```sql
+-- Tạo database
+CREATE DATABASE mexc_data;
+```
 
-**Lỗi ChromeDriver**: Tải ChromeDriver và đặt vào PATH
+**Lưu ý**: Table sẽ được tự động tạo khi chạy crawler lần đầu.
 
-**Lỗi timeout**: Kiểm tra kết nối internet
+## ⏰ Cron Job Windows
 
-**Lỗi data type**: Đảm bảo database schema đã được tạo đúng
+### 1. Tạo cron job (chạy mỗi 1 phút sau khi task crawl hoàn thành)
 
-## 📝 Lưu ý
+```cmd
+schtasks /create /tn "MEXC_PreMarket_Crawler" /tr "D:\Crawl_MEXC\cron_wrapper.bat" /sc minute /mo 1 /f
+```
 
-- Crawler sẽ tự động tạo database tables nếu chưa tồn tại
-- Dữ liệu được lưu với timestamp tự động
-- File backup được tạo để phòng trường hợp cần thiết
+### 2. Kiểm tra cron job
 
----
+```cmd
+schtasks /query /tn "MEXC_PreMarket_Crawler"
+```
 
-**Version**: 2.0 | **Status**: ✅ Hoạt động tốt với PostgreSQL
+### 3. Hủy bỏ cron job
+
+```cmd
+schtasks /delete /tn "MEXC_PreMarket_Crawler" /f
+```
+
+## ✅ Kết quả
+
+Sau khi thiết lập:
+
+- ✅ Crawler chạy tự động theo lịch đã đặt
+- ✅ Data được lưu vào PostgreSQL database
+- ✅ Logs được ghi vào `logs/` folder (mỗi ngày 1 file)
+- ✅ Chạy 24/7 ngay cả khi không đăng nhập

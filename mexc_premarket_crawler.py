@@ -22,6 +22,9 @@ import json
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from config import DATABASE_CONFIG
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from queue import Queue
 
 
 class MexcPreMarketCrawler:
@@ -35,6 +38,158 @@ class MexcPreMarketCrawler:
             'port': '5432'
         }
         self.conn = None
+        self.driver_pool = Queue()
+        self.driver_pool_size = 1  # Chỉ 1 driver để tránh connection issues
+        self.driver_lock = threading.Lock()
+    
+    
+    def create_driver(self):
+        """Tạo Chrome driver tối ưu - giảm delay và cảnh báo"""
+        chrome_options = Options()
+        
+        # Basic headless settings
+        chrome_options.add_argument('--headless=new')  # Sử dụng headless mới
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        
+        # GPU và rendering optimization
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--disable-software-rasterizer')
+        chrome_options.add_argument('--disable-gpu-sandbox')
+        chrome_options.add_argument('--disable-gpu-process-crash-limit')
+        chrome_options.add_argument('--disable-gpu-memory-buffer-video-frames')
+        chrome_options.add_argument('--disable-gpu-rasterization')
+        chrome_options.add_argument('--disable-gpu-compositing')
+        chrome_options.add_argument('--disable-3d-apis')
+        chrome_options.add_argument('--disable-webgl')
+        chrome_options.add_argument('--disable-webgl2')
+        chrome_options.add_argument('--disable-accelerated-2d-canvas')
+        chrome_options.add_argument('--disable-accelerated-jpeg-decoding')
+        chrome_options.add_argument('--disable-accelerated-mjpeg-decode')
+        chrome_options.add_argument('--disable-accelerated-video-decode')
+        chrome_options.add_argument('--disable-accelerated-video-encode')
+        
+        # Performance optimization
+        chrome_options.add_argument('--disable-background-networking')
+        chrome_options.add_argument('--disable-background-timer-throttling')
+        chrome_options.add_argument('--disable-renderer-backgrounding')
+        chrome_options.add_argument('--disable-backgrounding-occluded-windows')
+        chrome_options.add_argument('--disable-ipc-flooding-protection')
+        chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+        chrome_options.add_argument('--disable-features=TranslateUI')
+        chrome_options.add_argument('--disable-features=BlinkGenPropertyTrees')
+        chrome_options.add_argument('--disable-features=EnableDrDc')
+        
+        # Memory và resource optimization
+        chrome_options.add_argument('--memory-pressure-off')
+        chrome_options.add_argument('--max_old_space_size=4096')
+        chrome_options.add_argument('--disable-background-mode')
+        chrome_options.add_argument('--disable-component-extensions-with-background-pages')
+        chrome_options.add_argument('--disable-default-apps')
+        chrome_options.add_argument('--disable-extensions')
+        chrome_options.add_argument('--disable-sync')
+        chrome_options.add_argument('--disable-translate')
+        chrome_options.add_argument('--disable-plugins')
+        chrome_options.add_argument('--disable-images')
+        
+        # Network optimization
+        chrome_options.add_argument('--disable-web-security')
+        chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+        chrome_options.add_argument('--aggressive-cache-discard')
+        chrome_options.add_argument('--disable-background-networking')
+        chrome_options.add_argument('--disable-background-timer-throttling')
+        
+        # Logging và debugging
+        chrome_options.add_argument('--disable-logging')
+        chrome_options.add_argument('--log-level=3')
+        chrome_options.add_argument('--silent')
+        chrome_options.add_argument('--disable-logging')
+        chrome_options.add_argument('--disable-permissions-api')
+        chrome_options.add_argument('--disable-notifications')
+        chrome_options.add_argument('--disable-popup-blocking')
+        
+        # Window settings
+        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+        
+        # Anti-detection
+        chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_options.add_experimental_option('useAutomationExtension', False)
+        
+        # Disable DevTools
+        chrome_options.add_argument('--disable-dev-tools')
+        chrome_options.add_argument('--disable-devtools')
+        chrome_options.add_argument('--no-first-run')
+        chrome_options.add_argument('--no-default-browser-check')
+        chrome_options.add_argument('--disable-default-apps')
+        
+        # Disable hardware acceleration completely
+        chrome_options.add_argument('--disable-accelerated-2d-canvas')
+        chrome_options.add_argument('--disable-accelerated-video')
+        chrome_options.add_argument('--disable-accelerated-mjpeg-decode')
+        chrome_options.add_argument('--disable-accelerated-video-decode')
+        chrome_options.add_argument('--disable-accelerated-video-encode')
+        
+        # Disable WebRTC
+        chrome_options.add_argument('--disable-webrtc')
+        chrome_options.add_argument('--disable-webrtc-hw-decoding')
+        chrome_options.add_argument('--disable-webrtc-hw-encoding')
+        
+        # Disable media
+        chrome_options.add_argument('--disable-audio-output')
+        chrome_options.add_argument('--disable-audio-input')
+        chrome_options.add_argument('--mute-audio')
+        
+        # Additional performance flags
+        chrome_options.add_argument('--disable-hang-monitor')
+        chrome_options.add_argument('--disable-prompt-on-repost')
+        chrome_options.add_argument('--disable-domain-reliability')
+        chrome_options.add_argument('--disable-client-side-phishing-detection')
+        chrome_options.add_argument('--disable-component-update')
+        chrome_options.add_argument('--disable-background-downloads')
+        
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        return driver
+    
+    def get_driver(self):
+        """Lấy driver từ pool hoặc tạo mới"""
+        with self.driver_lock:
+            if not self.driver_pool.empty():
+                return self.driver_pool.get()
+            else:
+                return self.create_driver()
+    
+    def return_driver(self, driver):
+        """Trả driver về pool"""
+        if driver:
+            try:
+                # Clear cookies và cache để tránh conflict
+                driver.delete_all_cookies()
+                driver.execute_script("window.localStorage.clear();")
+                driver.execute_script("window.sessionStorage.clear();")
+                
+                with self.driver_lock:
+                    if self.driver_pool.qsize() < self.driver_pool_size:
+                        self.driver_pool.put(driver)
+                    else:
+                        driver.quit()
+            except:
+                try:
+                    driver.quit()
+                except:
+                    pass
+    
+    def cleanup_driver_pool(self):
+        """Dọn dẹp tất cả driver trong pool"""
+        with self.driver_lock:
+            while not self.driver_pool.empty():
+                try:
+                    driver = self.driver_pool.get()
+                    driver.quit()
+                except:
+                    pass
     
     def connect_database(self):
         """Kết nối đến PostgreSQL database"""
@@ -47,10 +202,14 @@ class MexcPreMarketCrawler:
             return False
     
     def close_database(self):
-        """Đóng kết nối database"""
+        """Đóng kết nối database và cleanup driver pool"""
         if self.conn:
             self.conn.close()
             print("✅ Database connection closed")
+        
+        # Cleanup driver pool
+        self.cleanup_driver_pool()
+        print("✅ Driver pool cleaned up")
     
     def create_tables(self):
         """Tạo tables nếu chưa tồn tại"""
@@ -101,39 +260,105 @@ class MexcPreMarketCrawler:
             return False
     
     def insert_token(self, token_data):
-        """Thêm token vào database"""
+        """Upsert token vào database (insert or update)"""
         if not self.conn:
             return None
         
         try:
             cursor = self.conn.cursor()
-            cursor.execute("""
-                INSERT INTO tokens (symbol, name, latest_price, price_change_percent, 
-                                  volume_24h, total_volume, start_time, end_time, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id
-            """, (
-                token_data['symbol'],
-                token_data['name'],
-                token_data['latest_price'],
-                token_data['price_change_percent'],
-                token_data['volume_24h'],
-                token_data['total_volume'],
-                token_data['start_time'],
-                token_data['end_time'],
-                token_data['created_at']
-            ))
             
-            token_id = cursor.fetchone()[0]
+            # Check if token already exists by symbol
+            cursor.execute("SELECT id FROM tokens WHERE symbol = %s", (token_data['symbol'],))
+            existing_token = cursor.fetchone()
+            
+            if existing_token:
+                # Update existing token
+                token_id = existing_token[0]
+                cursor.execute("""
+                    UPDATE tokens SET 
+                        name = %s,
+                        latest_price = %s,
+                        price_change_percent = %s,
+                        volume_24h = %s,
+                        total_volume = %s,
+                        start_time = %s,
+                        end_time = %s,
+                        created_at = %s
+                    WHERE id = %s
+                """, (
+                    token_data['name'],
+                    token_data['latest_price'],
+                    token_data['price_change_percent'],
+                    token_data['volume_24h'],
+                    token_data['total_volume'],
+                    token_data['start_time'],
+                    token_data['end_time'],
+                    token_data['created_at'],
+                    token_id
+                ))
+                print(f"✅ Token {token_data['symbol']} updated with ID: {token_id}")
+            else:
+                # Insert new token
+                cursor.execute("""
+                    INSERT INTO tokens (symbol, name, latest_price, price_change_percent, 
+                                      volume_24h, total_volume, start_time, end_time, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (
+                    token_data['symbol'],
+                    token_data['name'],
+                    token_data['latest_price'],
+                    token_data['price_change_percent'],
+                    token_data['volume_24h'],
+                    token_data['total_volume'],
+                    token_data['start_time'],
+                    token_data['end_time'],
+                    token_data['created_at']
+                ))
+                token_id = cursor.fetchone()[0]
+                print(f"✅ Token {token_data['symbol']} inserted with ID: {token_id}")
+            
             self.conn.commit()
             cursor.close()
-            print(f"✅ Token {token_data['symbol']} inserted with ID: {token_id}")
             return token_id
             
         except psycopg2.Error as e:
-            print(f"❌ Error inserting token: {e}")
+            print(f"❌ Error upserting token: {e}")
             self.conn.rollback()
             return None
+    
+    def cleanup_old_tokens(self, current_symbols):
+        """Xóa các tokens không còn trong danh sách hiện tại"""
+        if not self.conn or not current_symbols:
+            return False
+        
+        try:
+            cursor = self.conn.cursor()
+            
+            
+            # Convert list to tuple for SQL IN clause
+            symbols_tuple = tuple(current_symbols)
+            
+            # Delete tokens that are not in current crawl (including NULL symbols)
+            cursor.execute("""
+                DELETE FROM tokens 
+                WHERE symbol IS NULL OR symbol NOT IN %s
+            """, (symbols_tuple,))
+            
+            deleted_count = cursor.rowcount
+            if deleted_count > 0:
+                print(f"🗑️ Deleted {deleted_count} old tokens not in current crawl")
+            else:
+                print("ℹ️ No old tokens to delete")
+            
+            self.conn.commit()
+            cursor.close()
+            return True
+            
+        except psycopg2.Error as e:
+            print(f"❌ Error cleaning up old tokens: {e}")
+            self.conn.rollback()
+            return False
     
     def insert_order_books(self, token_id, order_books):
         """Thêm order books vào database"""
@@ -187,7 +412,7 @@ class MexcPreMarketCrawler:
         print("=" * 70)
         print("📊 Target: All pre-market tokens")
         print("📊 Phase 1: Getting all token data from pre-market")
-        print("📊 Phase 2: Crawling order books for each token")
+        print("📊 Phase 2: Crawling order books")
         print("📊 Phase 3: Saving to PostgreSQL database")
         print("=" * 70)
         
@@ -204,19 +429,34 @@ class MexcPreMarketCrawler:
         
         try:
             # Phase 1: Get all token data from pre-market page
+            phase1_start = time.time()
+            phase1_start_time = datetime.now().strftime("%H:%M:%S")
+            print(f"🕐 Phase 1 start: {phase1_start_time}")
             self.crawl_all_tokens_data()
+            phase1_time = time.time() - phase1_start
+            phase1_end_time = datetime.now().strftime("%H:%M:%S")
+            print(f"✅ Phase 1 completed! ({phase1_time:.1f}s) - {phase1_start_time} to {phase1_end_time}")
             
             # Phase 2: Crawl order books for each token
             if self.tokens_data:
+                phase2_start = time.time()
+                phase2_start_time = datetime.now().strftime("%H:%M:%S")
                 print(f"\n🔄 Phase 2: Crawling order books for {len(self.tokens_data)} tokens...")
+                print(f"🕐 Phase 2 start: {phase2_start_time}")
                 self.crawl_all_orderbooks()
+                phase2_time = time.time() - phase2_start
+                phase2_end_time = datetime.now().strftime("%H:%M:%S")
+                print(f"✅ Phase 2 completed! ({phase2_time:.1f}s) - {phase2_start_time} to {phase2_end_time}")
             
             # Phase 3: Save to database
             if self.tokens_data:
+                phase3_start = time.time()
+                phase3_start_time = datetime.now().strftime("%H:%M:%S")
                 print(f"\n💾 Phase 3: Saving to PostgreSQL database...")
+                print(f"🕐 Phase 3 start: {phase3_start_time}")
                 
                 total_order_entries = 0
-                # Insert token data and their order books
+                # Insert/Update token data and their order books
                 for token in self.tokens_data:
                     token_id = self.insert_token(token)
                     if token_id and token['symbol'] in self.orderbook_data:
@@ -225,7 +465,13 @@ class MexcPreMarketCrawler:
                         self.insert_order_books(token_id, token_orders)
                         total_order_entries += len(token_orders)
                 
-                print(f"✅ Data saved to database successfully!")
+                # Clean up old tokens not in current crawl
+                current_symbols = [token['symbol'] for token in self.tokens_data if token.get('symbol')]
+                self.cleanup_old_tokens(current_symbols)
+                
+                phase3_time = time.time() - phase3_start
+                phase3_end_time = datetime.now().strftime("%H:%M:%S")
+                print(f"✅ Phase 3 completed! ({phase3_time:.1f}s) - {phase3_start_time} to {phase3_end_time}")
             
             print(f"\n🎯 PRE-MARKET CRAWLING COMPLETED!")
             print(f"   • Tokens extracted: {len(self.tokens_data)}")
@@ -241,14 +487,110 @@ class MexcPreMarketCrawler:
         """Crawl all token data from pre-market page"""
         print(f"\n📋 Phase 1: Getting all token data from pre-market...")
         
-        # Set up Chrome driver
+        # Set up Chrome driver - sử dụng cùng cấu hình tối ưu
         chrome_options = Options()
-        chrome_options.add_argument('--headless')
+        
+        # Basic headless settings
+        chrome_options.add_argument('--headless=new')  # Sử dụng headless mới
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
+        
+        # GPU và rendering optimization
         chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--disable-software-rasterizer')
+        chrome_options.add_argument('--disable-gpu-sandbox')
+        chrome_options.add_argument('--disable-gpu-process-crash-limit')
+        chrome_options.add_argument('--disable-gpu-memory-buffer-video-frames')
+        chrome_options.add_argument('--disable-gpu-rasterization')
+        chrome_options.add_argument('--disable-gpu-compositing')
+        chrome_options.add_argument('--disable-3d-apis')
+        chrome_options.add_argument('--disable-webgl')
+        chrome_options.add_argument('--disable-webgl2')
+        chrome_options.add_argument('--disable-accelerated-2d-canvas')
+        chrome_options.add_argument('--disable-accelerated-jpeg-decoding')
+        chrome_options.add_argument('--disable-accelerated-mjpeg-decode')
+        chrome_options.add_argument('--disable-accelerated-video-decode')
+        chrome_options.add_argument('--disable-accelerated-video-encode')
+        
+        # Performance optimization
+        chrome_options.add_argument('--disable-background-networking')
+        chrome_options.add_argument('--disable-background-timer-throttling')
+        chrome_options.add_argument('--disable-renderer-backgrounding')
+        chrome_options.add_argument('--disable-backgrounding-occluded-windows')
+        chrome_options.add_argument('--disable-ipc-flooding-protection')
+        chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+        chrome_options.add_argument('--disable-features=TranslateUI')
+        chrome_options.add_argument('--disable-features=BlinkGenPropertyTrees')
+        chrome_options.add_argument('--disable-features=EnableDrDc')
+        
+        # Memory và resource optimization
+        chrome_options.add_argument('--memory-pressure-off')
+        chrome_options.add_argument('--max_old_space_size=4096')
+        chrome_options.add_argument('--disable-background-mode')
+        chrome_options.add_argument('--disable-component-extensions-with-background-pages')
+        chrome_options.add_argument('--disable-default-apps')
+        chrome_options.add_argument('--disable-extensions')
+        chrome_options.add_argument('--disable-sync')
+        chrome_options.add_argument('--disable-translate')
+        chrome_options.add_argument('--disable-plugins')
+        chrome_options.add_argument('--disable-images')
+        
+        # Network optimization
+        chrome_options.add_argument('--disable-web-security')
+        chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+        chrome_options.add_argument('--aggressive-cache-discard')
+        chrome_options.add_argument('--disable-background-networking')
+        chrome_options.add_argument('--disable-background-timer-throttling')
+        
+        # Logging và debugging
+        chrome_options.add_argument('--disable-logging')
+        chrome_options.add_argument('--log-level=3')
+        chrome_options.add_argument('--silent')
+        chrome_options.add_argument('--disable-logging')
+        chrome_options.add_argument('--disable-permissions-api')
+        chrome_options.add_argument('--disable-notifications')
+        chrome_options.add_argument('--disable-popup-blocking')
+        
+        # Window settings
         chrome_options.add_argument('--window-size=1920,1080')
         chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+        
+        # Anti-detection
+        chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_options.add_experimental_option('useAutomationExtension', False)
+        
+        # Disable DevTools
+        chrome_options.add_argument('--disable-dev-tools')
+        chrome_options.add_argument('--disable-devtools')
+        chrome_options.add_argument('--no-first-run')
+        chrome_options.add_argument('--no-default-browser-check')
+        chrome_options.add_argument('--disable-default-apps')
+        
+        # Disable hardware acceleration completely
+        chrome_options.add_argument('--disable-accelerated-2d-canvas')
+        chrome_options.add_argument('--disable-accelerated-video')
+        chrome_options.add_argument('--disable-accelerated-mjpeg-decode')
+        chrome_options.add_argument('--disable-accelerated-video-decode')
+        chrome_options.add_argument('--disable-accelerated-video-encode')
+        
+        # Disable WebRTC
+        chrome_options.add_argument('--disable-webrtc')
+        chrome_options.add_argument('--disable-webrtc-hw-decoding')
+        chrome_options.add_argument('--disable-webrtc-hw-encoding')
+        
+        # Disable media
+        chrome_options.add_argument('--disable-audio-output')
+        chrome_options.add_argument('--disable-audio-input')
+        chrome_options.add_argument('--mute-audio')
+        
+        # Additional performance flags
+        chrome_options.add_argument('--disable-hang-monitor')
+        chrome_options.add_argument('--disable-prompt-on-repost')
+        chrome_options.add_argument('--disable-domain-reliability')
+        chrome_options.add_argument('--disable-client-side-phishing-detection')
+        chrome_options.add_argument('--disable-component-update')
+        chrome_options.add_argument('--disable-background-downloads')
         
         driver = None
         try:
@@ -268,11 +610,14 @@ class MexcPreMarketCrawler:
                     EC.presence_of_element_located((By.ID, "rc-tabs-0-panel-1"))
                 )
                 
-                # Wait for content to load
-                time.sleep(5)
+                # Smart wait for token list to be populated instead of fixed sleep
+                print("⏳ Waiting for token list to load...")
+                token_list = wait.until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "ul.ant-list-items"))
+                )
                 
-                # Try to find the token list
-                token_list = driver.find_element(By.CSS_SELECTOR, "ul.ant-list-items")
+                # Wait for actual token items to be present
+                wait.until(lambda driver: len(driver.find_elements(By.CSS_SELECTOR, "ul.ant-list-items li")) > 0)
                 
                 if token_list:
                     print("✅ Found token list, processing all tokens...")
@@ -306,34 +651,371 @@ class MexcPreMarketCrawler:
                 driver.quit()
     
     def crawl_all_orderbooks(self):
-        """Crawl order books for all tokens"""
-        print(f"\n📈 Phase 2: Crawling order books for all tokens...")
-        
+        """Crawl order books for all tokens using parallel processing"""
         # Initialize orderbook_data as dictionary to store orders by token symbol
         self.orderbook_data = {}
         
-        for token in self.tokens_data:
-            symbol = token.get('symbol', '')
-            if symbol:
-                print(f"\n🔄 Processing order book for {symbol}...")
-                token_orders = self.crawl_token_orderbook(symbol)
-                if token_orders:
-                    self.orderbook_data[symbol] = token_orders
-                    print(f"✅ {symbol}: {len(token_orders)} order entries")
+        # Filter tokens with valid symbols
+        valid_tokens = [token for token in self.tokens_data if token.get('symbol', '')]
+        
+        if not valid_tokens:
+            print("⚠️ No valid tokens to process")
+            return
+        
+        print(f"🚀 Starting parallel order book crawling for {len(valid_tokens)} tokens...")
+        
+        # Use ThreadPoolExecutor for parallel processing
+        max_workers = 1  # Chỉ 1 worker để tránh connection issues  # Tối đa 3 threads để tránh quá tải
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            future_to_symbol = {
+                executor.submit(self.crawl_token_orderbook_optimized, token): token.get('symbol', '')
+                for token in valid_tokens
+            }
+            
+            # Process completed tasks
+            completed = 0
+            for future in as_completed(future_to_symbol):
+                symbol = future_to_symbol[future]
+                completed += 1
+                token_start_time = time.time()
+                
+                try:
+                    token_orders = future.result()
+                    token_time = time.time() - token_start_time
+                    if token_orders:
+                        self.orderbook_data[symbol] = token_orders
+                        print(f"✅ [{completed}/{len(valid_tokens)}] {symbol}: {len(token_orders)} order entries ({token_time:.1f}s)")
+                    else:
+                        print(f"⚠️ [{completed}/{len(valid_tokens)}] {symbol}: No order book data found ({token_time:.1f}s)")
+                except Exception as e:
+                    token_time = time.time() - token_start_time
+                    print(f"❌ [{completed}/{len(valid_tokens)}] {symbol}: Error - {e} ({token_time:.1f}s)")
+                
+                # Add delay between requests to avoid overwhelming the server
+                time.sleep(1)
+        
+        print(f"🎯 Parallel crawling completed! Processed {len(self.orderbook_data)} tokens successfully")
+    
+    def crawl_token_orderbook_optimized(self, token):
+        """Crawl order book for a specific token using driver pool"""
+        symbol = token.get('symbol', '')
+        if not symbol:
+            return []
+        
+        driver = None
+        max_retries = 2
+        
+        for attempt in range(max_retries):
+            try:
+                # Get driver from pool
+                driver = self.get_driver()
+                
+                # Use correct URL pattern for the token
+                url = f'https://www.mexc.com/vi-VN/pre-market/{symbol}'
+                print(f"  🔗 [{symbol}] Loading URL: {url} (attempt {attempt + 1})")
+                
+                driver.get(url)
+                
+                # Wait for page to load
+                wait = WebDriverWait(driver, 15)
+                time.sleep(3)  # Simple wait
+                
+                # Check if page loaded successfully
+                if "404" not in driver.title and "error" not in driver.title.lower():
+                    print(f"  ✅ [{symbol}] Successfully loaded order book page")
+                    
+                    # Extract order book data for this token
+                    orderbook_entries = self.extract_orderbook_optimized(driver, symbol)
+                    
+                    if orderbook_entries:
+                        print(f"  📊 [{symbol}] Found {len(orderbook_entries)} order book entries")
+                    else:
+                        print(f"  ⚠️ [{symbol}] No order book data found")
+                    
+                    return orderbook_entries
                 else:
-                    print(f"⚠️ No order book data found for {symbol}")
+                    print(f"  ❌ [{symbol}] Page not found: {url}")
+                    return []
+                    
+            except Exception as e:
+                error_msg = str(e)
+                if "Connection aborted" in error_msg or "ConnectionResetError" in error_msg:
+                    print(f"  ⚠️ [{symbol}] Connection error (attempt {attempt + 1}): {error_msg}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2)  # Wait before retry
+                        continue
+                    else:
+                        print(f"❌ [{symbol}] Max retries reached, giving up")
+                        return []
+                else:
+                    print(f"❌ [{symbol}] Error crawling order book: {e}")
+                    return []
+            finally:
+                # Return driver to pool
+                if driver:
+                    self.return_driver(driver)
+                    driver = None
+    
+    def extract_orderbook_optimized(self, driver, symbol):
+        """Extract order book data for any token - optimized version"""
+        orderbook_entries = []
+        crawled_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        try:
+            print(f"    🔍 [{symbol}] Extracting order book data...")
+            
+            # Phase 1: Crawl SELL orders (lệnh bán) - table with "Mua" buttons
+            print(f"    🔍 [{symbol}] Phase 1: Crawling SELL orders...")
+            sell_entries = self.crawl_order_type_optimized(driver, symbol, crawled_at,
+                                                         table_selector=".order-book-table_sellTable__Dxd2s",
+                                                         price_selector=".order-book-table_sellPrice__xAuZe",
+                                                         expected_button="Mua",
+                                                         order_type_name="SELL orders")
+            orderbook_entries.extend(sell_entries)
+            
+            # Phase 2: Crawl BUY orders (lệnh mua) - table with "Bán" buttons  
+            print(f"    🔍 [{symbol}] Phase 2: Crawling BUY orders...")
+            buy_entries = self.crawl_order_type_optimized(driver, symbol, crawled_at,
+                                                        table_selector=".order-book-table_buyTable__xqBVW", 
+                                                        price_selector=".order-book-table_buyPrice__uY0OB",
+                                                        expected_button="Bán",
+                                                        order_type_name="BUY orders")
+            orderbook_entries.extend(buy_entries)
+            
+            print(f"    ✅ [{symbol}] Total extracted: {len(orderbook_entries)} entries ({len(sell_entries)} SELL + {len(buy_entries)} BUY)")
+            
+        except Exception as e:
+            print(f"    ❌ [{symbol}] Error extracting order book: {str(e)}")
+        
+        return orderbook_entries
+    
+    def crawl_order_type_optimized(self, driver, symbol, crawled_at, table_selector, price_selector, expected_button, order_type_name):
+        """Crawl specific order type (SELL or BUY orders) - optimized version"""
+        orderbook_entries = []
+        
+        try:
+            # Quick check for table data
+            try:
+                table = driver.find_element(By.CSS_SELECTOR, table_selector)
+                table_ready = True
+            except:
+                table_ready = False
+            
+            if table_ready:
+                if not table:
+                    print(f"      ⚠️ [{symbol}] Table not found with selector: {table_selector}")
+                    return orderbook_entries
+                
+                print(f"      ✅ [{symbol}] Found {order_type_name} table")
+                
+                # Extract rows from this table with stale element handling
+                rows = table.find_elements(By.CSS_SELECTOR, "tr")
+                if not rows:
+                    print(f"      ⚠️ [{symbol}] No rows found in table")
+                    return orderbook_entries
+                
+                # Parse each row quickly
+                valid_entries = 0
+                for i, row in enumerate(rows):
+                    try:
+                        # Skip measurement rows
+                        if self.is_measurement_row(row):
+                            continue
+                        
+                        # Extract order data from row
+                        order_data = self.parse_order_row(row, symbol, price_selector, expected_button)
+                        if order_data:
+                            orderbook_entries.append(order_data)
+                            valid_entries += 1
+                                
+                    except Exception as e:
+                        # Skip error rows silently to avoid spam
+                        continue
+                
+                print(f"      📊 [{symbol}] Successfully parsed {valid_entries} entries from {order_type_name}")
+                
+                # Handle pagination for this table - optimized (only if needed)
+                if valid_entries > 0:  # Only check pagination if we have data
+                    pagination_entries = self.handle_pagination_optimized(driver, symbol, crawled_at, table_selector, price_selector, expected_button, order_type_name)
+                    orderbook_entries.extend(pagination_entries)
+                    
+                    if pagination_entries:
+                        print(f"      📊 [{symbol}] Found {len(pagination_entries)} additional entries from {order_type_name} pagination")
+                
+            else:
+                print(f"      ⚠️ [{symbol}] {order_type_name} table not found")
+                
+        except NoSuchElementException:
+            print(f"      ⚠️ [{symbol}] {order_type_name} table not found with selector: {table_selector}")
+        except Exception as e:
+            print(f"      ❌ [{symbol}] Error with {order_type_name} table: {e}")
+        
+        return orderbook_entries
+    
+    def handle_pagination_optimized(self, driver, symbol, crawled_at, table_selector, price_selector=None, expected_button=None, order_type_name=""):
+        """Handle pagination - optimized version with reduced wait times"""
+        pagination_entries = []
+        
+        try:
+            # Look for pagination - use specific selector based on order type
+            if "sellTable" in table_selector:
+                pagination_selectors = [
+                    ".order-book-table_paginationWrapper__O_FJg:first-of-type",
+                    ".order-book-table_sellTable__Dxd2s + .order-book-table_paginationWrapper__O_FJg",
+                    ".ant-pagination",
+                    "[class*='pagination']"
+                ]
+            elif "buyTable" in table_selector:
+                pagination_selectors = [
+                    ".order-book-table_buyTable__xqBVW .order-book-table_paginationWrapper__O_FJg",
+                    ".order-book-table_buyTable__xqBVW + .order-book-table_paginationWrapper__O_FJg",
+                    ".order-book-table_paginationWrapper__O_FJg:last-of-type",
+                    ".ant-pagination",
+                    "[class*='pagination']"
+                ]
+            else:
+                pagination_selectors = [
+                    ".order-book-table_paginationWrapper__O_FJg",
+                    ".ant-pagination",
+                    "[class*='pagination']"
+                ]
+            
+            # Quick check for pagination
+            pagination = None
+            for selector in pagination_selectors:
+                try:
+                    pagination = driver.find_element(By.CSS_SELECTOR, selector)
+                    if pagination:
+                        break
+                except:
+                    continue
+            
+            if not pagination:
+                return pagination_entries
+            
+            # Get page numbers
+            page_items = pagination.find_elements(By.CSS_SELECTOR, ".ant-pagination-item")
+            if not page_items:
+                print(f"      ℹ️ [{symbol}] No page items found")
+                return pagination_entries
+            
+            # Get available page numbers (only crawl pages that actually exist)
+            available_pages = []
+            for item in page_items:
+                try:
+                    page_num = int(item.get_attribute('title'))
+                    available_pages.append(page_num)
+                except:
+                    continue
+            
+            # Sort and get max page
+            available_pages.sort()
+            max_page = max(available_pages) if available_pages else 1
+            
+            print(f"      📄 [{symbol}] Processing pages 1 to {max_page} for {order_type_name}")
+            
+            # Process pages from 2 to max_page - optimized with shorter waits
+            if max_page > 1:
+                pages_to_process = list(range(2, max_page + 1))
+                
+                for page_num in pages_to_process:
+                    try:
+                        print(f"      🔄 [{symbol}] Processing page {page_num}...")
+                        
+                        # Find and click page link
+                        page_link = None
+                        page_selectors = [
+                            f".ant-pagination-item-{page_num}",
+                            f"[title='{page_num}']",
+                            f"li[title='{page_num}']",
+                            f"a[title='{page_num}']",
+                            f"button[title='{page_num}']"
+                        ]
+                        
+                        for selector in page_selectors:
+                            try:
+                                page_link = pagination.find_element(By.CSS_SELECTOR, selector)
+                                break
+                            except NoSuchElementException:
+                                continue
+                        
+                        if page_link:
+                            # Click page link
+                            driver.execute_script("arguments[0].click();", page_link)
+                            print(f"        ✅ [{symbol}] Clicked page {page_num}")
+                            
+                            # Smart wait for page change instead of fixed sleep
+                            # Wait for page change
+                            time.sleep(2)  # Simple wait
+                            page_changed = True
+                            if not page_changed:
+                                print(f"        ⚠️ [{symbol}] Page change verification failed, continuing...")
+                            
+                            # Extract data from current page with stale element handling
+                            try:
+                                # Re-find table after page change to avoid stale elements
+                                table = driver.find_element(By.CSS_SELECTOR, table_selector)
+                                if not table:
+                                    print(f"        ⚠️ [{symbol}] Table not found on page {page_num}")
+                                    continue
+                                
+                                rows = table.find_elements(By.CSS_SELECTOR, "tr")
+                                if not rows:
+                                    print(f"        ⚠️ [{symbol}] No rows found on page {page_num}")
+                                    continue
+                                
+                                page_entries = []
+                                page_crawled_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                                
+                                for row in rows:
+                                    try:
+                                        if not self.is_measurement_row(row):
+                                            order_data = self.parse_order_row(row, symbol, price_selector, expected_button)
+                                            if order_data:
+                                                page_entries.append(order_data)
+                                    except Exception as e:
+                                        print(f"          ⚠️ [{symbol}] Error parsing row on page {page_num}: {str(e)}")
+                                        continue
+                                
+                                pagination_entries.extend(page_entries)
+                                print(f"        📄 [{symbol}] Page {page_num}: {len(page_entries)} entries")
+                                
+                            except Exception as e:
+                                print(f"        ❌ [{symbol}] Error extracting page {page_num}: {str(e)}")
+                        else:
+                            print(f"      ❌ [{symbol}] Page {page_num} link not found")
+                            
+                    except Exception as e:
+                        print(f"      ❌ [{symbol}] Error processing page {page_num}: {e}")
+                        continue
+                
+                print(f"      ✅ [{symbol}] Completed pagination for {order_type_name}: {len(pagination_entries)} additional entries from {max_page-1} pages")
+            else:
+                print(f"      ℹ️ [{symbol}] Only 1 page available for {order_type_name}, no pagination needed")
+                
+        except Exception as e:
+            print(f"      ❌ [{symbol}] Error handling pagination: {e}")
+        
+        return pagination_entries
+    
+    
+    
+    
+    
+    
+    
+    
     
     def crawl_token_orderbook(self, symbol):
         """Crawl order book for a specific token"""
-        print(f"🔄 Processing order book for {symbol}...")
         
         try:
             # Use correct URL pattern for the token
             orderbook_entries = self.crawl_orderbook_for_token(symbol)
             
-            if orderbook_entries:
-                print(f"✅ {symbol}: {len(orderbook_entries)} order entries")
-            else:
+            if not orderbook_entries:
                 print(f"⚠️  No order book data found for {symbol}")
             
             return orderbook_entries
@@ -343,34 +1025,34 @@ class MexcPreMarketCrawler:
             return []
     
     def crawl_orderbook_for_token(self, symbol):
-        """Crawl order book data for a specific token"""
+        """Crawl order book data for a specific token - using driver pool"""
         orderbook_entries = []
-        
-        # Set up Chrome driver for order book page
-        chrome_options = Options()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--window-size=1920,1080')
-        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-        
         driver = None
+        
         try:
-            driver = webdriver.Chrome(options=chrome_options)
+            # Get driver from pool
+            driver = self.get_driver()
             
-            # Use correct URL pattern for MENTO
+            # Use correct URL pattern for the token
             url = f'https://www.mexc.com/vi-VN/pre-market/{symbol}'
             print(f"  🔗 Loading URL: {url}")
             
             driver.get(url)
             
-            # Wait for the page to load
+            # Smart wait for page elements instead of fixed sleep
+            # Wait for page to load
             wait = WebDriverWait(driver, 15)
-            time.sleep(5)
+            try:
+                wait.until(EC.any_of(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, ".order-book-table_sellTable__Dxd2s")),
+                    EC.presence_of_element_located((By.CSS_SELECTOR, ".order-book-table_buyTable__xqBVW"))
+                ))
+                page_loaded = True
+            except:
+                page_loaded = False
             
             # Check if page loaded successfully
-            if "404" not in driver.title and "error" not in driver.title.lower():
+            if "404" not in driver.title and "error" not in driver.title.lower() and page_loaded:
                 print(f"  ✅ Successfully loaded order book page for {symbol}")
                 
                 # Extract order book data for this token
@@ -384,11 +1066,12 @@ class MexcPreMarketCrawler:
                 print(f"  ❌ Page not found: {url}")
                 
         except Exception as e:
-            print(f"❌ Error crawling order book for MENTO: {e}")
+            print(f"❌ Error crawling order book for {symbol}: {e}")
             
         finally:
+            # Return driver to pool
             if driver:
-                driver.quit()
+                self.return_driver(driver)
         
         return orderbook_entries
     
@@ -438,7 +1121,6 @@ class MexcPreMarketCrawler:
                 
                 # Extract rows from this table
                 rows = table.find_elements(By.CSS_SELECTOR, "tr")
-                print(f"      📊 Found {len(rows)} rows in {order_type_name} table")
                 
                 # Parse each row
                 valid_entries = 0
@@ -454,9 +1136,6 @@ class MexcPreMarketCrawler:
                             orderbook_entries.append(order_data)
                             valid_entries += 1
                             
-                            # Show first few entries
-                            if i < 5:
-                                print(f"        ✅ Row {i+1}: {order_data['order_type']} - {order_data['price']} x {order_data['quantity']}")
                                 
                     except Exception as e:
                         print(f"        ❌ Error parsing {order_type_name} row {i+1}: {e}")
@@ -574,7 +1253,7 @@ class MexcPreMarketCrawler:
             return order_entry
             
         except Exception as e:
-            print(f"        ❌ Error parsing MENTO order row: {e}")
+            print(f"        ❌ Error parsing order row: {e}")
             return None
     
     def handle_mento_pagination(self, driver, symbol, crawled_at, table_selector, price_selector=None, expected_button=None, order_type_name=""):
@@ -627,14 +1306,6 @@ class MexcPreMarketCrawler:
                 print(f"      ℹ️  No page items found")
                 return pagination_entries
             
-            # Debug: Show all pagination items
-            print(f"      🔍 Debug: Found {len(page_items)} pagination items for {order_type_name}")
-            for i, item in enumerate(page_items):
-                title = item.get_attribute('title') or 'No title'
-                text = item.text.strip()
-                classes = item.get_attribute('class') or 'No class'
-                print(f"        Item {i+1}: title='{title}', text='{text}', class='{classes}'")
-            
             # Get available page numbers (only crawl pages that actually exist)
             available_pages = []
             for item in page_items:
@@ -648,11 +1319,10 @@ class MexcPreMarketCrawler:
             available_pages.sort()
             max_page = max(available_pages) if available_pages else 1
             
-            print(f"      📄 Found {len(page_items)} pages, max page: {max_page}, available pages: {available_pages}")
+            print(f"      📄 Processing ALL pages from 1 to {max_page} for {order_type_name}")
             
             # Process ALL pages from 2 to max_page for both order types
             if max_page > 1:
-                print(f"      🔄 Processing ALL pages from 2 to {max_page} for {order_type_name}")
                 pages_to_process = list(range(2, max_page + 1))
                 
                 for page_num in pages_to_process:
@@ -706,7 +1376,7 @@ class MexcPreMarketCrawler:
                                 next_button = pagination.find_element(By.CSS_SELECTOR, ".ant-pagination-next")
                                 if next_button.is_enabled():
                                     driver.execute_script("arguments[0].click();", next_button)
-                                    time.sleep(2)
+                                    time.sleep(1)  # Simple wait
                                     
                                     # Try to find the page link again
                                     for selector in page_selectors:
@@ -724,8 +1394,8 @@ class MexcPreMarketCrawler:
                             driver.execute_script("arguments[0].click();", page_link)
                             print(f"        ✅ Clicked page {page_num}")
                             
-                            # Wait for data to load with longer timeout
-                            time.sleep(5)
+                            # Smart wait for data to load instead of fixed sleep
+                            time.sleep(1)  # Simple wait
                             
                             # Wait for pagination to update and show current page
                             max_wait_attempts = 10
@@ -739,19 +1409,19 @@ class MexcPreMarketCrawler:
                                         break
                                     else:
                                         print(f"        ⏳ Waiting for page {page_num}, currently on {active_page} (attempt {attempt+1})")
-                                        time.sleep(1)
+                                        time.sleep(0.5)  # Simple wait
                                 except:
                                     print(f"        ⏳ Waiting for pagination to update (attempt {attempt+1})")
-                                    time.sleep(1)
+                                    time.sleep(0.5)  # Simple wait
                             
-                            # Additional wait for table data to refresh
-                            time.sleep(3)
+                            # Smart wait for table data to refresh
+                            time.sleep(1)  # Simple wait
                             
                             # Scroll to trigger any lazy loading
                             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                            time.sleep(1)
+                            time.sleep(1)  # Simple wait
                             driver.execute_script("window.scrollTo(0, 0);")
-                            time.sleep(1)
+                            time.sleep(1)  # Simple wait
                             
                             # Extract data from current page
                             try:
@@ -778,9 +1448,9 @@ class MexcPreMarketCrawler:
                             print(f"      ❌ Page {page_num} link not found - trying to scroll and wait...")
                             # Try scrolling to see if more pagination appears
                             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                            time.sleep(2)
+                            time.sleep(1)  # Simple wait
                             driver.execute_script("window.scrollTo(0, 0);")
-                            time.sleep(2)
+                            time.sleep(1)  # Simple wait
                             
                             # Try to find the page link again after scrolling
                             for selector in page_selectors:
@@ -794,7 +1464,7 @@ class MexcPreMarketCrawler:
                             if page_link:
                                 driver.execute_script("arguments[0].click();", page_link)
                                 print(f"        ✅ Clicked page {page_num} after scrolling")
-                                time.sleep(3)
+                                time.sleep(1)  # Simple wait
                             else:
                                 print(f"      ❌ Page {page_num} still not found after scrolling")
                             
@@ -866,8 +1536,8 @@ class MexcPreMarketCrawler:
                 'price_change_percent': '',
                 'volume_24h': '',
                 'total_volume': '',
-                'start_time': '',
-                'end_time': '',
+                'start_time': None,
+                'end_time': None,
                 'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             
@@ -915,28 +1585,36 @@ class MexcPreMarketCrawler:
                 else:
                     token_data['total_volume'] = float(volume_str)
             
-            # Extract start time (first timestamp)
+            # Extract timestamps
             time_pattern = r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})'
             time_matches = re.findall(time_pattern, item_text)
-            if time_matches:
-                token_data['start_time'] = time_matches[0]
             
-            # Extract end time - look for second timestamp or status
-            if len(time_matches) >= 2:
-                # If there are 2 timestamps, use the second one as end_time
-                token_data['end_time'] = time_matches[1]
-            else:
-                # Check for status patterns
-                end_time_patterns = [r'Đợi xác nhận', r'Đã kết thúc', r'Đang diễn ra']
-                for pattern in end_time_patterns:
-                    end_match = re.search(pattern, item_text)
-                    if end_match:
-                        # Set to None for database (NULL value) for status text
-                        token_data['end_time'] = None
-                        break
+            # Check for status patterns first
+            status_patterns = [r'Đợi xác nhận', r'Đã kết thúc', r'Đang diễn ra', r'Đang xác nhận']
+            has_status = False
+            for pattern in status_patterns:
+                if re.search(pattern, item_text):
+                    has_status = True
+                    break
+            
+            if time_matches:
+                # Has timestamps
+                if len(time_matches) >= 2:
+                    # 2 timestamps: start_time = first, end_time = second
+                    token_data['start_time'] = time_matches[0]
+                    token_data['end_time'] = time_matches[1]
                 else:
-                    # If no status found, set to None
+                    # 1 timestamp: start_time = timestamp, end_time = NULL (waiting for confirmation)
+                    token_data['start_time'] = time_matches[0]
                     token_data['end_time'] = None
+            elif has_status:
+                # Only status, no timestamps: both start_time and end_time = NULL
+                token_data['start_time'] = None
+                token_data['end_time'] = None
+            else:
+                # No timestamps and no status found
+                token_data['start_time'] = None
+                token_data['end_time'] = None
             
             return token_data
             
@@ -1000,9 +1678,13 @@ class MexcPreMarketCrawler:
 
 def main():
     """Main function to crawl all pre-market tokens"""
+    start_time = time.time()
+    start_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
     print("🚀 MEXC Pre-Market Token Crawler")
     print("Crawling all pre-market tokens and their order books")
     print("=" * 60)
+    print(f"🕐 Start time: {start_datetime}")
     
     # Initialize crawler with database config from config.py
     crawler = MexcPreMarketCrawler(DATABASE_CONFIG)
@@ -1011,23 +1693,51 @@ def main():
     # Run the pre-market crawler
     tokens_data, orderbook_data = crawler.crawl_premarket_data()
     
+    # Calculate execution time
+    end_time = time.time()
+    end_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    execution_time = end_time - start_time
+    hours = int(execution_time // 3600)
+    minutes = int((execution_time % 3600) // 60)
+    seconds = int(execution_time % 60)
+    
     if tokens_data:
         print("\n🎉 PRE-MARKET CRAWLING COMPLETED!")
-        
-        # Calculate total order book entries
-        total_orders = 0
-        if orderbook_data:
-            total_orders = sum(len(orders) for orders in orderbook_data.values())
+        print(f"🕐 End time: {end_datetime}")
         
         # Display summary
         print(f"\n📊 SUMMARY:")
         print(f"   • Tokens: {len(tokens_data)}")
-        print(f"   • Order book entries: {total_orders}")
+        if orderbook_data:
+            total_orders = sum(len(orders) for orders in orderbook_data.values())
+            print(f"   • Order books: {total_orders} entries across {len(orderbook_data)} tokens")
+        else:
+            print(f"   • Order books: No data available")
+        
+        print(f"\n⏱️ EXECUTION TIME:")
+        print(f"   • Start: {start_datetime}")
+        print(f"   • End: {end_datetime}")
+        if hours > 0:
+            print(f"   • Total time: {hours}h {minutes}m {seconds}s")
+        elif minutes > 0:
+            print(f"   • Total time: {minutes}m {seconds}s")
+        else:
+            print(f"   • Total time: {seconds}s")
         
         print(f"\n💾 Data saved to PostgreSQL database: crawl_mexc")
         
     else:
         print("❌ No token data was extracted. Please check your setup and try again.")
+        print(f"🕐 End time: {end_datetime}")
+        print(f"\n⏱️ EXECUTION TIME:")
+        print(f"   • Start: {start_datetime}")
+        print(f"   • End: {end_datetime}")
+        if hours > 0:
+            print(f"   • Total time: {hours}h {minutes}m {seconds}s")
+        elif minutes > 0:
+            print(f"   • Total time: {minutes}m {seconds}s")
+        else:
+            print(f"   • Total time: {seconds}s")
 
 
 if __name__ == "__main__":
